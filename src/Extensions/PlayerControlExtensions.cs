@@ -227,7 +227,7 @@ public static class PlayerControlExtensions
     {
         log.Trace($"Exiled (V2): {player.GetNameWithRole()}");
         player.Exiled();
-        RpcV3.Immediate(player.NetId, RpcCalls.Exiled, SendOption.None);
+        RpcV3.Immediate(player.NetId, RpcCalls.Exiled, SendOption.None).Send();
 
         if (!reallyExiled)
         {
@@ -307,7 +307,7 @@ public static class PlayerControlExtensions
 
     public static bool IsAlive(this PlayerControl target)
     {
-        return target != null && !target.Data.IsDead && !target.Data.Disconnected;
+        return target != null && target.Data != null && !target.Data.IsDead && !target.Data.Disconnected;
     }
 
     public static void RpcResetAbilityCooldown(this PlayerControl target)

@@ -41,12 +41,12 @@ public class AddonManager
         #if RELEASE
             if (OperatingSystem.IsAndroid()) return; // xtra wants to disable this on android for now.
         #endif
-        addonDirectory.EnumerateFiles().Do(LoadAddon);
-        Addons.ForEach(addon =>
+        log.Info($"Loading addons from: {addonDirectory.FullName}");
+        addonDirectory.EnumerateFiles().Where(AddonLifecycle.IsAssembly).Do(LoadAddon);
+        AddonLifecycle.PostInitialize(Addons, (addon, exception) =>
         {
-            log.Log(AddonLL, $"Calling Post Initialize for {addon.Name}");
-            addon.PostInitialize(new List<LotusAddon>(Addons));
-            //addon.Factions.Do(f => FactionConstraintValidator.ValidateAndAdd(f, file.Name));
+            log.Exception($"Post-initialization failed for addon {addon.Name}.", exception);
+            FailedAddons.Add(addon.Name + ".");
         });
     }
 
@@ -55,7 +55,7 @@ public class AddonManager
         try
         {
             Assembly assembly = Assembly.LoadFile(file.FullName);
-            Type? lotusType = assembly.GetTypes().FirstOrDefault(t => t.IsAssignableTo(typeof(LotusAddon)));
+            Type? lotusType = assembly.GetTypes().FirstOrDefault(t => t.IsAssignableTo(typeof(LotusAddon)) && !t.IsAbstract && !t.ContainsGenericParameters);
             if (lotusType == null)
                 throw new ConstraintException($"Lotus Addons requires ONE class file that extends {nameof(LotusAddon)}");
             LotusAddon addon = (LotusAddon)AccessTools.Constructor(lotusType).Invoke([]);
@@ -63,8 +63,7 @@ public class AddonManager
             log.Log(AddonLL, $"Loading Addon [{addon.Name} {addon.Version}]", "AddonManager");
             Vents.Register(assembly);
 
-            Addons.Add(addon);
-            addon.Initialize();
+            AddonLifecycle.Initialize(addon, Addons);
         }
         catch (Exception e)
         {
@@ -86,39 +85,19 @@ public class AddonManager
     {
         List<AddonInfo> hostInfo = Addons.Select(AddonInfo.From).ToList();
         PlayerControl? senderControl = Vents.GetLastSender((uint)ModCalls.ReceiveAddons);
-        int senderId = senderControl?.GetClientId() ?? 999;
+        if (senderControl == null) return;
+        int senderId = senderControl.GetClientId();
         log.Debug($"Last Sender: {senderId}");
-
-        if (senderControl != null)
-            PlayerAddons.Add(senderControl.PlayerId, receivedAddons);
-
-        List<AddonInfo> mismatchInfo = Addons.Select(hostAddon =>
+        AddonValidation.Remember(PlayerAddons, senderControl.PlayerId, receivedAddons);
+        List<AddonInfo> mismatchInfo = AddonValidation.Compare(hostInfo, receivedAddons);
+        foreach (var mismatch in mismatchInfo)
         {
-            AddonInfo haInfo = hostInfo.First(h => h.Name == hostAddon.Name);
-            AddonInfo? matchingAddon = receivedAddons.FirstOrDefault(a => a == haInfo);
-            if (matchingAddon == null)
-            {
-                haInfo.Mismatches = Mismatch.ClientMissingAddon;
-                Vents.BlockClient(hostAddon.BundledAssembly, senderId);
-                return haInfo;
-            }
-
-            matchingAddon.CheckVersion(matchingAddon);
-            return matchingAddon;
-        }).ToList();
-
-        mismatchInfo.AddRange(receivedAddons.Select(clientAddon =>
-            {
-                AddonInfo? matchingAddon = hostInfo.FirstOrDefault(a => a == clientAddon);
-                if (matchingAddon! == null!)
-                    clientAddon.Mismatches = Mismatch.HostMissingAddon;
-                else
-                    clientAddon.CheckVersion(matchingAddon);
-                return clientAddon;
-            }));
-
-        mismatchInfo.DistinctBy(addon => addon.Name).Where(addon => addon.Mismatches is not (Mismatch.None or Mismatch.ClientMissingAddon)).Do(a => Vents.FindRPC(1017)!.Send([senderId], a.AssemblyFullName, (int)VentControlFlag.Denied));
-        ReceiveAddonVerification(mismatchInfo.DistinctBy(addon => addon.Name).Where(addon => addon.Mismatches is not Mismatch.None).ToList(), senderId);
+            var local = Addons.FirstOrDefault(a => a.UUID == mismatch.UUID);
+            if (local != null) Vents.BlockClient(local.BundledAssembly, senderId);
+            if (mismatch.Mismatches != Mismatch.ClientMissingAddon)
+                Vents.FindRPC(1017)!.Send([senderId], mismatch.AssemblyFullName, (int)VentControlFlag.Denied);
+        }
+        ReceiveAddonVerification(mismatchInfo, senderId);
     }
 
     [ModRPC((uint)ModCalls.ReceiveAddons, RpcActors.Host, RpcActors.NonHosts, MethodInvocation.ExecuteAfter)]
@@ -143,7 +122,7 @@ public class AddonManager
             // block rpcs from this player
             mismatchedAddons.ForEach(a =>
             {
-                LotusAddon? myAddon = Addons.FirstOrDefault(ma => AddonInfo.From(ma).AssemblyFullName == a.AssemblyFullName);
+                LotusAddon? myAddon = Addons.FirstOrDefault(ma => ma.UUID == a.UUID);
                 if (myAddon == null) return;
                 Vents.BlockClient(myAddon.BundledAssembly, senderId);
             });

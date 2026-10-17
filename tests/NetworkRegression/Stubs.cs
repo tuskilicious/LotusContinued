@@ -25,6 +25,9 @@ public class PlayerControl
 {
     public static List<PlayerControl> AllPlayerControls = new();
     public static PlayerControl LocalPlayer = new();
+    public uint NetId; public byte scannerCount; public int ScannerCalls;
+    public void SetScanner(bool enabled, byte sequence) => ScannerCalls++;
+    public bool AmOwner; public int OwnerId;
     public byte PlayerId;
     public string name = "Player";
     public PlayerData Data = new();
@@ -229,5 +232,26 @@ namespace Lotus.Roles.Managers.Interfaces
         public static IRoleManager Current = new();
         public List<Lotus.Roles.CustomRole> Roles = new();
         public IEnumerable<Lotus.Roles.CustomRole> AllCustomRoles() => Roles;
+    }
+}
+
+namespace InnerNet { public record struct PlayerId(byte Value); }
+public class MeetingHud
+{
+    public uint NetId = 123; public int Clears; public byte? ClearedPlayer; public bool Local;
+    public void ClearVote(InnerNet.PlayerId id, bool local) { Clears++; ClearedPlayer = id.Value; Local = local; }
+    public void RpcClearVote(InnerNet.PlayerId id) => VentLib.Networking.RPC.RpcV3.Recipients.Add(id.Value);
+}
+public enum RpcCalls { ClearVote, SetScanner }
+namespace Hazel { public enum SendOption { None } }
+namespace VentLib.Networking.RPC
+{
+    public class RpcV3
+    {
+        public static List<int> Recipients = new();
+        public static List<object> Payload = new();
+        public static RpcV3 Immediate(uint netId, RpcCalls call, Hazel.SendOption option = Hazel.SendOption.None) { Payload.Clear(); return new(); }
+        public RpcV3 Write(object value) { Payload.Add(value); return this; }
+        public void Send(int ownerId) => Recipients.Add(ownerId);
     }
 }

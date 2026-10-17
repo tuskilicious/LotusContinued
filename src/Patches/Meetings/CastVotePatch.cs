@@ -54,9 +54,10 @@ public class CastVotePatch
 
     public static void ClearVote(MeetingHud hud, PlayerControl target)
     {
-        if (MeetingDelegate.Instance.AlreadyCompleted) return;
+        if (hud == null || hud != MeetingHud.Instance || target == null || target.Data == null
+            || target.Data.Disconnected || MeetingDelegate.Instance.AlreadyCompleted) return;
         log.Trace($"Clearing vote for: {target.GetNameWithRole()}");
         hud.playerStates.Where(ps => ps.PlayerId.Value == target.PlayerId).ForEach(ps => ps.VotedForId = byte.MaxValue);
-        RpcV3.Immediate(hud.NetId, RpcCalls.ClearVote).Send(target.OwnerId);
+        VoteReset.Send(hud, target);
     }
 }

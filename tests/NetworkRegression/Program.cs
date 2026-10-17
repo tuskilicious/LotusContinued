@@ -13,6 +13,59 @@ using UnityEngine;
 
 var tests = new (string name, Action run)[]
 {
+    ("Scanner feedback uses subject sequence and local rendering for host", () =>
+    {
+        AmongUsClient.Instance.AmHost = true;
+        var subject = new PlayerControl { scannerCount = 7 };
+        var viewer = new PlayerControl { AmOwner = true, scannerCount = 20 };
+        ScannerFeedback.Set(subject, viewer, true);
+        Equal((byte)8, subject.scannerCount);
+        Equal((byte)20, viewer.scannerCount);
+        Equal(1, subject.ScannerCalls);
+        Equal(0, VentLib.Networking.RPC.RpcV3.Recipients.Count);
+    }),
+    ("Scanner feedback sends subject sequence only to remote viewer", () =>
+    {
+        AmongUsClient.Instance.AmHost = true;
+        var subject = new PlayerControl { scannerCount = 7 };
+        ScannerFeedback.Set(subject, new PlayerControl { OwnerId = 99 }, false);
+        Equal(99, VentLib.Networking.RPC.RpcV3.Recipients.Single());
+        Equal<object>(false, VentLib.Networking.RPC.RpcV3.Payload[0]);
+        Equal<object>((byte)8, VentLib.Networking.RPC.RpcV3.Payload[1]);
+        Equal(0, subject.ScannerCalls);
+    }),
+    ("Scanner feedback ignores removed player data", () =>
+    {
+        AmongUsClient.Instance.AmHost = true;
+        ScannerFeedback.Set(new PlayerControl { Data = null! }, new PlayerControl(), true);
+        Equal(0, VentLib.Networking.RPC.RpcV3.Recipients.Count);
+    }),
+    ("Host vote reset stays local without a server RPC", () =>
+    {
+        AmongUsClient.Instance.AmHost = true;
+        var hud = new MeetingHud();
+        VoteReset.Send(hud, new PlayerControl { AmOwner = true, OwnerId = 42, PlayerId = 3 });
+        Equal(1, hud.Clears);
+        Equal<byte?>(3, hud.ClearedPlayer);
+        Equal(true, hud.Local);
+        Equal(0, VentLib.Networking.RPC.RpcV3.Recipients.Count);
+    }),
+    ("Remote vote reset targets only the voting client", () =>
+    {
+        AmongUsClient.Instance.AmHost = true;
+        var hud = new MeetingHud();
+        VoteReset.Send(hud, new PlayerControl { OwnerId = 77, PlayerId = 5 });
+        Equal(0, hud.Clears);
+        Equal(5, VentLib.Networking.RPC.RpcV3.Recipients.Single());
+    }),
+    ("Non-host cannot issue vote resets", () =>
+    {
+        var hud = new MeetingHud();
+        VoteReset.Send(hud, new PlayerControl { AmOwner = true });
+        VoteReset.Send(hud, new PlayerControl { OwnerId = 77, PlayerId = 5 });
+        Equal(0, hud.Clears);
+        Equal(0, VentLib.Networking.RPC.RpcV3.Recipients.Count);
+    }),
     ("Balanced four-player settings pass preflight", () =>
     {
         Equal(0, LobbyPreflightRules.Check(new LobbySetup(4, false, 1, 0, 0, 0, 0, 4, false, 0)).Count);
@@ -295,6 +348,7 @@ var tests = new (string name, Action run)[]
 int failed = 0;
 foreach ((string name, Action run) in tests)
 {
+    VentLib.Networking.RPC.RpcV3.Recipients.Clear();
     Game.State = GameState.InLobby;
     Game.CurrentGameMode = new();
     PlayerControl.AllPlayerControls.Clear();

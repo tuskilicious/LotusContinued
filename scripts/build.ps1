@@ -26,3 +26,6 @@ if ($LASTEXITCODE) { throw 'Lotus build failed' }
 if ($LASTEXITCODE) { throw 'Regression checks failed' }
 & $Dotnet run --project "$root/tests/AssetRegression/AssetRegression.csproj" -c Release
 if ($LASTEXITCODE) { throw 'Asset and YAML regression checks failed' }
+
+& $Dotnet run --project "$root/tests/AddonRegression/AddonRegression.csproj" -c Release
+if ($LASTEXITCODE) { throw 'Addon regression checks failed' }
