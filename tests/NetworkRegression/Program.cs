@@ -13,6 +13,27 @@ using UnityEngine;
 
 var tests = new (string name, Action run)[]
 {
+    ("Player lookup handles empty, missing, and removed players", () =>
+    {
+        PlayerControl.AllPlayerControls.Clear();
+        Equal<PlayerControl?>(null, Utils.GetPlayerById(7));
+        var player = new PlayerControl { PlayerId = 7 };
+        PlayerControl.AllPlayerControls.Add(player);
+        Equal(player, Utils.GetPlayerById(7));
+        Equal<PlayerControl?>(null, Utils.GetPlayerById(8));
+        PlayerControl.AllPlayerControls.Clear();
+        Equal<PlayerControl?>(null, Utils.GetPlayerById(7));
+    }),
+    ("Player lookup skips null entries and preserves first match", () =>
+    {
+        PlayerControl.AllPlayerControls.Clear();
+        var first = new PlayerControl { PlayerId = 7 };
+        PlayerControl.AllPlayerControls.Add(null!);
+        PlayerControl.AllPlayerControls.Add(first);
+        PlayerControl.AllPlayerControls.Add(new PlayerControl { PlayerId = 7 });
+        Equal(first, Utils.GetPlayerById(7));
+        PlayerControl.AllPlayerControls.Clear();
+    }),
     ("Resolution hotkey stays at minimum", () =>
     {
         ResolutionUtils.ResolutionIndex = 0;

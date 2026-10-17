@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/Utilities/Utils.PlayerLookup.cs" Link="Source/Utils.PlayerLookup.cs" />
     <Compile Include="../../src/Utilities/ResolutionUtils.cs" Link="Source/ResolutionUtils.cs" />
     <Compile Include="../../src/Patches/Network/PlayerJoinPatch.cs" Link="Source/PlayerJoinPatch.cs" />
     <Compile Include="../../src/Patches/Network/PlayerLeavePatch.cs" Link="Source/PlayerLeavePatch.cs" />
