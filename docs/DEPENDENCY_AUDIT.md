@@ -16,7 +16,7 @@ Package feeds were queried before this prerelease. Both plugins remain net6.0 to
 
 Retained compatibility constraints:
 
-- BepInEx.Unity.IL2CPP remains 6.0.0-be.735. Testing 6.0.0-be.789 failed in the latest available IL2CPP.MSBuild task: its generator expects CecilMetadataAccess, removed from Il2CppInterop.Generator 1.5.3. The shipped loader and compile-time loader API remain aligned. A loader migration needs a corresponding build-tool migration and runtime tests.
+- BepInEx.Unity.IL2CPP remains 6.0.0-be.735. Testing 6.0.0-be.752 and 6.0.0-be.789 failed in the latest available IL2CPP.MSBuild task: its generator expects CecilMetadataAccess, absent from the selected Il2CppInterop.Generator 1.5.x assemblies. The shipped loader and compile-time loader API remain aligned. A loader migration needs a corresponding build-tool migration and runtime tests.
 - Pastel 6.0.1, 7.0.0 and 8.0.0 select .NET Framework assets on net6.0, producing NU1701. Version 5.2.1 provides a native net6.0 target.
 - Roslyn 4.11 matches the compiler shipped in SDK 8.0.425. The newer 5.9 analyzer/compiler APIs require a newer compiler host; they are not loaded into the SDK 8 compiler.
 - Game references remain 2026.9.29, matching Among Us v19 rather than selecting a mismatched game API.

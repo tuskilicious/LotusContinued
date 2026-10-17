@@ -21,4 +21,4 @@ Updated v19 options and meeting APIs; fixed reported Mastermind timing, Airship 
 
 Both projects compile with zero errors; 19 isolated regression checks pass. Existing warnings remain. No measured FPS claim and no claim that all bugs are fixed. In-game validation, mixed-client multiplayer, and new vanilla role behavior remain to be checked.
 
-Includes the upstream x64 loader from Lotus-AU/BepInExZips commit 84197fc2b723c80a7f1ccb342a22a7015c64276e and translations from Lotus-AU/Languages commit 1cb89d1fe013407cc13e472e1472e95ac8ad3056. Among Us itself is not included.
+Includes the official BepInEx Unity IL2CPP x64 loader 6.0.0-be.735+5fef357 and translations from Lotus-AU/Languages commit 1cb89d1fe013407cc13e472e1472e95ac8ad3056. Among Us itself is not included.

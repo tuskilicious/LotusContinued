@@ -3,6 +3,16 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $root = Split-Path $PSScriptRoot -Parent
 $output = [IO.Path]::GetFullPath((Join-Path $root $OutputDirectory))
+New-Item -ItemType Directory -Path $output -Force | Out-Null
+$inputs = @(
+    @{ Name='loader-x64.zip'; Url='https://builds.bepinex.dev/projects/bepinex_be/735/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.735%2B5fef357.zip'; Hash='BADEF8112853A00939A0DF6CA143BC0A4E3DC02BD4D21B873302731BFA0E4DF4' },
+    @{ Name='translations.zip'; Url='https://github.com/Lotus-AU/Languages/archive/1cb89d1fe013407cc13e472e1472e95ac8ad3056.zip'; Hash='26494DFB79D1303E9D15A533707E6F230D2EB09981FABF04C6ACED9972EEDE70' }
+)
+foreach ($inputArchive in $inputs) {
+    $archivePath = Join-Path $output $inputArchive.Name
+    if (!(Test-Path $archivePath)) { Invoke-WebRequest $inputArchive.Url -OutFile $archivePath }
+    if ((Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash -ne $inputArchive.Hash) { throw "Unexpected archive checksum: $archivePath" }
+}
 $stage = Join-Path $output 'Epic-x64'
 if (Test-Path $stage) { throw 'Staging directory already exists; use a fresh output directory.' }
 New-Item -ItemType Directory -Path $stage -Force | Out-Null
