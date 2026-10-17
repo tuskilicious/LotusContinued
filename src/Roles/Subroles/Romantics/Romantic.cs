@@ -157,10 +157,12 @@ public class Romantic : Subrole, IInfoResender
 
     private void InterceptWinCondition(WinDelegate winDelegate)
     {
+        if (!partnerLockedIn) return;
         Optional<PlayerControl> partnerControl = Players.PlayerById(partner);
         if (!partnerControl.Exists()) return; // if we win round1, do nothing
         if (!partnerControl.Get().IsAlive()) return; // if they died, do nothing.
-        NormalStandardGameMode.Instance.Assign(partnerControl.Get(), new Partner(), false);
+        if (partnerControl.Get().GetSubrole<Partner>() == null)
+            NormalStandardGameMode.Instance.Assign(partnerControl.Get(), new Partner(), false);
         bool hasRomantic = winDelegate.GetWinners().Any(w => w.PlayerId == MyPlayer.PlayerId);
         bool hasPartner = winDelegate.GetWinners().Any(w => w.PlayerId == partner);
         if ((!hasRomantic && !hasPartner) || (hasRomantic && hasPartner)) return; // includes neither or both us so we skip.

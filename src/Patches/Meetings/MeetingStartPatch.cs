@@ -95,7 +95,7 @@ public class MeetingStartPatch
     {
         /*SoundManager.Instance.ChangeMusicVolume(0f);*/
         if (AmongUsClient.Instance.AmHost) __instance.playerStates.ToArray()
-            .FirstOrOptional(ps => ps.TargetPlayerId == PlayerControl.LocalPlayer.PlayerId)
+            .FirstOrOptional(ps => ps.PlayerId.Value == PlayerControl.LocalPlayer.PlayerId)
             .IfPresent(voteArea => voteArea.NameText.text = PlayerControl.LocalPlayer.NameModel().Render(sendToPlayer: false, force: true));
     }
 }

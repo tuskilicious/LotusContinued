@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/Utilities/ResolutionUtils.cs" Link="Source/ResolutionUtils.cs" />
+    <Compile Include="../../src/Patches/Network/PlayerJoinPatch.cs" Link="Source/PlayerJoinPatch.cs" />
+    <Compile Include="../../src/Patches/Network/PlayerLeavePatch.cs" Link="Source/PlayerLeavePatch.cs" />
+    <Compile Include="../../src/Managers/Templates/Models/Units/IActionUnit.cs" Link="Source/IActionUnit.cs" />
+    <Compile Include="../../src/Managers/Templates/Models/Units/Actions/CommonActionUnit.cs" Link="Source/CommonActionUnit.cs" />
+    <Compile Include="../../src/Managers/Templates/Models/Units/Actions/NumericActionUnit.cs" Link="Source/NumericActionUnit.cs" />
+    <Compile Include="../../src/Managers/Templates/Models/Units/Actions/TActionAdd.cs" Link="Source/TActionAdd.cs" />
+  </ItemGroup>
+</Project>

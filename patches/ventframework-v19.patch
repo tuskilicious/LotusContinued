@@ -1,0 +1,42 @@
+diff --git a/VentFrameworkContinued.csproj b/VentFrameworkContinued.csproj
+index 3198671..034b2c0 100644
+--- a/VentFrameworkContinued.csproj
++++ b/VentFrameworkContinued.csproj
+@@ -19,7 +19,7 @@
+     </PropertyGroup>
+     
+     <PropertyGroup Condition="'$(AmongUs)' == ''">
+-        <AmongUs>D:\Games\AmongUs\steam\Lotus</AmongUs>
++        <AmongUs></AmongUs>
+     </PropertyGroup>
+ 
+     <ItemGroup>
+@@ -38,7 +38,7 @@
+         </PackageReference>
+         <PackageReference Include="Pastel" Version="4.1.0" />
+         <PackageReference Include="Samboy063.Cpp2IL.Core" Version="2022.1.0-pre-release.19" />
+-        <PackageReference Include="AmongUs.GameLibs.Steam" Version="2026.3.31" PrivateAssets="all" />
++        <PackageReference Include="AmongUs.GameLibs.Steam" Version="2026.9.29" PrivateAssets="all" />
+         <PackageReference Include="BepInEx.AutoPlugin" Version="1.1.0" PrivateAssets="all" />
+         <PackageReference Include="BepInEx.IL2CPP.MSBuild" Version="2.0.1" PrivateAssets="all" />
+         <PackageReference Include="YamlDotNet" Version="12.3.1" PrivateAssets="all" />
+diff --git a/src/Logging/LogDirectory.cs b/src/Logging/LogDirectory.cs
+index 0aef340..d260f67 100644
+--- a/src/Logging/LogDirectory.cs
++++ b/src/Logging/LogDirectory.cs
+@@ -16,12 +16,13 @@ namespace VentLib.Logging;
+ 
+ public class LogDirectory
+ {
++    private static string _directoryPath = null!;
+     public static string Directory
+     {
+-        get;
++        get => _directoryPath;
+         set
+         {
+-            field = value;
++            _directoryPath = value;
+             _directory = ValidateDirectory(new DirectoryInfo(value), true);
+         }
+     }

@@ -8,3 +8,5 @@ FodyWeavers.xsd
 /.vscode
 .vscode/settings.json
 Lotus.sln.DotSettings.user
+.dependencies/
+artifacts/

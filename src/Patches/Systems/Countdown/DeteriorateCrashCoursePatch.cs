@@ -1,4 +1,5 @@
 using HarmonyLib;
+using Lotus.API.Vanilla.Sabotages;
 using Lotus.Options;
 
 namespace Lotus.Patches.Systems.Countdown;
@@ -9,6 +10,9 @@ public static class DeteriorateCrashCoursePatch
     private static bool Initiated = false;
     public static void Prefix(HeliSabotageSystem __instance)
     {
+        if (SabotagePatch.CurrentSabotage?.SabotageType() is SabotageType.Helicopter)
+            SabotagePatch.SabotageCountdown = __instance.Countdown;
+
         if (!__instance.IsActive)
         {
             Initiated = false;

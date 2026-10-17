@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Lotus.Managers.Templates.Models.Units.Actions;
 
@@ -12,7 +12,7 @@ public abstract class NumericActionUnit: CommonActionUnit
 
     public override string Execute(string meta, object? data)
     {
-        return Execute(ParseFloatValue(TemplateUnit.FormatStatic(meta)), Convert.ToSingle(TemplateUnit.FormatStatic(Input.ToString() ?? "")), data);
+        return Execute(ParseFloatValue(TemplateUnit.FormatStatic(meta, data)), ParseFloatValue(TemplateUnit.FormatStatic(Input.ToString() ?? "", data)), data);
     }
 
     public abstract string Execute(float meta, float operand, object? data);
@@ -21,7 +21,7 @@ public abstract class NumericActionUnit: CommonActionUnit
     {
         try
         {
-            return float.Parse(input);
+            return float.Parse(input, System.Globalization.CultureInfo.InvariantCulture);
         }
         catch (Exception exception)
         {

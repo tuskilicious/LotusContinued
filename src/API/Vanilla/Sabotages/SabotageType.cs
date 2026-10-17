@@ -27,7 +27,7 @@ public static class SabotageTypeMethods
                 ? SystemTypes.Laboratory
                 : SystemTypes.Reactor,
             SabotageType.Door => SystemTypes.Doors,
-            SabotageType.Helicopter => SystemTypes.Reactor,
+            SabotageType.Helicopter => SystemTypes.HeliSabotage,
             _ => throw new ArgumentOutOfRangeException(nameof(sabotageType), sabotageType, null)
         };
     }

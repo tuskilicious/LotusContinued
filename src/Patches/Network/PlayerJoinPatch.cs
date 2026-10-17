@@ -54,6 +54,11 @@ public class PlayerJoinPatch
 
         client.PlayerName = playerName;
         player.name = playerName;
+        if (!AmongUsClient.Instance.AmHost)
+        {
+            Hooks.PlayerHooks.PlayerJoinHook.Propagate(new PlayerHookEvent(player));
+            return;
+        }
         bool kickPlayer = false;
         kickPlayer = kickPlayer || GeneralOptions.AdminOptions.KickPlayersWithoutFriendcodes && client.FriendCode == "" && AmongUsClient.Instance.NetworkMode is not NetworkModes.LocalGame;
         kickPlayer = kickPlayer || client.PlatformData.Platform is Android or IPhone && GeneralOptions.AdminOptions.KickMobilePlayers;
@@ -76,7 +81,7 @@ public class PlayerJoinPatch
 
     public static void CheckAutostart()
     {
-        if (!GeneralOptions.AdminOptions.AutoStartEnabled) return;
+        if (!AmongUsClient.Instance.AmHost || !GeneralOptions.AdminOptions.AutoStartEnabled) return;
         if (GeneralOptions.AdminOptions.AutoStartPlayerThreshold == -1 || PlayerControl.AllPlayerControls.Count < GeneralOptions.AdminOptions.AutoStartPlayerThreshold)
         {
             if (GeneralOptions.AdminOptions.AutoStartMaxTime == -1)
@@ -100,6 +105,7 @@ public class PlayerJoinPatch
     [QuickPostfix(typeof(GameStartManager), nameof(GameStartManager.Update))]
     private static void HookStartManager(GameStartManager __instance)
     {
+        if (!AmongUsClient.Instance.AmHost || !GeneralOptions.AdminOptions.AutoStartEnabled) return;
         if (GeneralOptions.AdminOptions.AutoStartMaxTime == -1) return;
         if (Math.Abs(__instance.countDownTimer - 10f) < 0.5f && _autostartLock.AcquireLock())
             PluginDataManager.TemplateManager.ShowAll("autostart", PlayerControl.LocalPlayer);

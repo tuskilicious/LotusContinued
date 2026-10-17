@@ -1,8 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <LangVersion>17.0</LangVersion>
-    <langVersion>latest</langVersion>
+    <LangVersion>12.0</LangVersion>
     <Description>Project Lotus</Description>
     <Authors>Tealeaf, Discussions</Authors>
     <RootNamespace>Lotus</RootNamespace>
@@ -11,42 +10,33 @@
     <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
     <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
     <Deterministic>false</Deterministic>
-    <DefineConstants>JETBRAINS_ANNOTATIONS</DefineConstants>
+    <DefineConstants>$(DefineConstants);JETBRAINS_ANNOTATIONS</DefineConstants>
+    <DefaultItemExcludes>$(DefaultItemExcludes);.dependencies/**;tests/**</DefaultItemExcludes>
     <Optimize>True</Optimize>
   </PropertyGroup>
   
   <PropertyGroup>
-    <debug>true</debug>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(AmongUs)' == ''">
-    <AmongUs>D:\Games\AmongUs\steam\Lotus</AmongUs>
-  </PropertyGroup>
-
-  <PropertyGroup>
-		<GamePlatform Condition="'$(GamePlatform)' == ''">Steam</GamePlatform>
-		<GameVersion Condition="'$(GamePlatform)' == 'Steam'">2025.9.9</GameVersion>
-		<GameVersion Condition="'$(GamePlatform)' == 'Itch'">2025.9.9</GameVersion>
+        <GameVersion>2026.9.29</GameVersion>
+        <VentFrameworkPath Condition="'$(VentFrameworkPath)' == ''">$(MSBuildProjectDirectory)/.dependencies/VentFramework-Continued/bin/Release/net6.0/VentFrameworkContinued.dll</VentFrameworkPath>
 
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
 
     <PropertyGroup Condition=" '$(Platform)' == 'AnyCPU' ">
-        <DefineConstants>TRACE;PC</DefineConstants>
+        <DefineConstants>$(DefineConstants);TRACE;PC</DefineConstants>
     </PropertyGroup>
 
 
   <ItemGroup>
-    <PackageReference Include="AmongUs.GameLibs.Steam" Version="2026.3.31" PrivateAssets="all" />
+    <PackageReference Include="AmongUs.GameLibs.Steam" Version="$(GameVersion)" PrivateAssets="all" />
 		<PackageReference Include="BepInEx.IL2CPP.MSBuild" Version="2.1.0-rc.1">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="BepInEx.Unity.IL2CPP" Version="6.0.0-be.735" Private="false" ExcludeAssets="runtime;native" />
-		<PackageReference Condition="$(Debug) == 'false'" Include="VentFrameworkContinued" Version="1.1.0" />
-    <Reference Condition="$(Debug) == 'true' and $(Platform)=='AnyCPU'" Include="../VentFramework-Continued/bin/Debug/net6.0/VentFrameworkContinued.dll">
-      <IncludeAssets>runtime; compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
+    <Reference Include="VentFrameworkContinued">
+      <HintPath>$(VentFrameworkPath)</HintPath>
+      <Private>true</Private>
     </Reference>
 	</ItemGroup>
   
@@ -68,13 +58,13 @@
     <PackageReference Include="YamlDotNet" Version="13.1.0" />
   </ItemGroup>
   
-  <Target Name="Copy" AfterTargets="Build" Condition="'$(AmongUs)' != '' and $(Platform)=='AnyCPU'">
-    <CreateItem Include="$(TargetDir)\*.dll" Exclude="$(TargetPath)">
-		  <Output TaskParameter="Include" ItemName="DEPSD" />
-    </CreateItem>
-    
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(AmongUs)/BepInEx/plugins/" UseSymboliclinksIfPossible="true"/>
-    <Move SourceFiles="@(DEPSD)" DestinationFolder="$(TargetDir)\depends\" OverwriteReadOnlyFiles="true" />
+  <Target Name="ValidateVentFramework" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(VentFrameworkPath)')" Text="Build the pinned VentFramework dependency with scripts/build.ps1 first, or set VentFrameworkPath to its DLL." />
+  </Target>
+
+  <Target Name="CopyToGame" AfterTargets="Build" Condition="'$(AmongUs)' != '' and '$(Platform)' == 'AnyCPU'">
+    <Error Condition="!Exists('$(AmongUs)/Among Us.exe')" Text="AmongUs must point to an existing Among Us installation." />
+    <Copy SourceFiles="$(TargetPath);$(VentFrameworkPath)" DestinationFolder="$(AmongUs)/BepInEx/plugins/" />
   </Target>
 
   <ItemGroup>

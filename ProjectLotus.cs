@@ -86,6 +86,7 @@ public class ProjectLotus : BasePlugin, IGitVersionEmitter
 
     public static bool FinishedLoading;
     public const bool AdvancedRoleAssignment = true;
+    public static bool HasReactorPlugin;
 
     internal Func<MeetingDelegate, IBlackscreenResolver> GetNewBlackscreenResolver = new(md => new BlackscreenResolver(md));
 
@@ -117,7 +118,7 @@ public class ProjectLotus : BasePlugin, IGitVersionEmitter
             ModUpdateMenu.AddUpdateItem("VentFrameworkContinued", null, ex => ModUpdater.Update(ventAssembly, ex)!);
     }
 
-    public static NormalGameOptionsV10 NormalOptions => GameOptionsManager.Instance.currentNormalGameOptions;
+    public static NormalGameOptionsV12 NormalOptions => GameOptionsManager.Instance.currentNormalGameOptions;
 
     public static GameModeManager GameModeManager = null!;
     public static List<byte> ResetCamPlayerList = null!;
@@ -139,6 +140,7 @@ public class ProjectLotus : BasePlugin, IGitVersionEmitter
         GameModeManager = new GameModeManager();
 
         log.Info("GitVersion - " + CurrentVersion);
+        HasReactorPlugin = IL2CPPChainloader.Instance.Plugins.ContainsKey("gg.reactor.api");
 
         // Setup, order matters here
 

@@ -20,6 +20,7 @@ class PlayerLeavePatch
     {
         log.Debug($"{data.PlayerName} (ClientID={data.Id}) left the game. (Reason={reason})", "SessionEnd");
         if (!AmongUsClient.Instance.AmHost) return;
+        if (data.Character == null) return;
         if (Game.State is GameState.InLobby)
         {
             PlayerJoinPatch.CheckAutostart();

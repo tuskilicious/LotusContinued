@@ -123,7 +123,7 @@ public class MeetingDelegate
             Hooks.MeetingHooks.ExiledHook.Propagate(new ExiledHookEvent(ExiledPlayer, playerVotes));
         }
 
-        MeetingHud.RpcVotingComplete(voterStates, exiledPlayer, isTie);
+        MeetingHud.RpcVotingComplete(voterStates, exiledPlayer, isTie, false, 0);
     }
 
     public bool IsForceEnd() => isForceEnd;
