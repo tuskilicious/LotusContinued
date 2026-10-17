@@ -10,3 +10,4 @@ FodyWeavers.xsd
 Lotus.sln.DotSettings.user
 .dependencies/
 artifacts/
+graphify-out/

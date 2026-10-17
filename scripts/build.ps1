@@ -24,3 +24,5 @@ if ($LASTEXITCODE) { throw 'Framework build failed' }
 if ($LASTEXITCODE) { throw 'Lotus build failed' }
 & $Dotnet run --project "$root/tests/NetworkRegression/NetworkRegression.csproj" -c Release
 if ($LASTEXITCODE) { throw 'Regression checks failed' }
+& $Dotnet run --project "$root/tests/AssetRegression/AssetRegression.csproj" -c Release
+if ($LASTEXITCODE) { throw 'Asset and YAML regression checks failed' }
