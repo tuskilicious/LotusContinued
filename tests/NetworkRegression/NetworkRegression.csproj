@@ -14,5 +14,14 @@
     <Compile Include="../../src/Managers/Templates/Models/Units/Actions/CommonActionUnit.cs" Link="Source/CommonActionUnit.cs" />
     <Compile Include="../../src/Managers/Templates/Models/Units/Actions/NumericActionUnit.cs" Link="Source/NumericActionUnit.cs" />
     <Compile Include="../../src/Managers/Templates/Models/Units/Actions/TActionAdd.cs" Link="Source/TActionAdd.cs" />
+    <Compile Include="../../src/Managers/Templates/Models/Units/Actions/TActionStore.cs" Link="Source/TActionStore.cs" />
+    <Compile Include="../../src/Managers/Templates/Models/Units/Actions/TActionStoreAs.cs" Link="Source/TActionStoreAs.cs" />
+    <Compile Include="../../src/Managers/Templates/Models/Units/Actions/TActionTrigger.cs" Link="Source/TActionTrigger.cs" />
+    <Compile Include="../../src/Utilities/LobbyRestrictions.cs" Link="Source/LobbyRestrictions.cs" />
+    <Compile Include="../../src/Utilities/ModerationNotice.cs" Link="Source/ModerationNotice.cs" />
+    <Compile Include="../../src/Utilities/DiagnosticHistory.cs" Link="Source/DiagnosticHistory.cs" />
+    <Compile Include="../../src/Utilities/LobbyPreflightRules.cs" Link="Source/LobbyPreflightRules.cs" />
+    <Compile Include="../../src/Utilities/MobileOnboarding.cs" Link="Source/MobileOnboarding.cs" />
+    <Compile Include="../../src/Utilities/LobbyPreflight.cs" Link="Source/LobbyPreflight.cs" />
   </ItemGroup>
 </Project>

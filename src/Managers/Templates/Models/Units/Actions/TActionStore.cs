@@ -12,7 +12,7 @@ public class TActionStore: CommonActionUnit
 
     public override string Execute(string meta, object? data)
     {
-        StoredVariables[TemplateUnit.FormatStatic(Input.ToString() ?? "")] = meta;
+        StoredVariables[TemplateUnit.FormatStatic(Input.ToString() ?? "", data)] = meta;
         return meta;
     }
 }

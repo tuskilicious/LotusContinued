@@ -43,6 +43,6 @@ class PlayerLeavePatch
             // CustomNetObject.DespawnOnQuit(data.Character.PlayerId);
         }
         Hooks.PlayerHooks.PlayerDisconnectHook.Propagate(new PlayerHookEvent(data.Character));
-        data.Character.Data.PlayerName = data.Character.name;
+        if (data.Character.Data != null) data.Character.Data.PlayerName = data.Character.name;
     }
 }

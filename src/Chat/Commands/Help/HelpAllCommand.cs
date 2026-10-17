@@ -24,11 +24,18 @@ public class HelpAllCommand : CommandTranslations
                 new($"/cmd admin [{NameParameter} | ID]", AdminCommandDescription),
                 new("/cmd start", StartCommandDescription),
                 new("/cmd dump", DumpCommandDescription),
+                new("/cmd lobby check", "Review settings before starting"),
+                new("/cmd lobby start", "Start after reviewing settings warnings"),
+                new("/cmd diagnostics", "Copy a privacy-filtered diagnostics report"),
+                new("/cmd lobby", "Show active join restrictions"),
+                new("/cmd lobby friends", "Apply the Playing with friends preset"),
                 new("/cmd t help", TemplateHelpCommandDescription)
             } },
 
             { CommandSection.General, new List<CommandHelp>
             {
+                new("/cmd guide", "Read the Lotus quick-start guide"),
+                new("/cmd build", "Show the installed host build and target game version"),
                 new($"/cmd r [{RoleNameParameter}]", RoleInfoCommandDescription),
                 new("/cmd r", RolesCommandDescription),
                 new("/cmd n [crew|imp|nk|mods]", NowSpecificCommandDescription),

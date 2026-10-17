@@ -37,6 +37,9 @@ public static class GameStartManagerPatch
         public static TMPro.TextMeshPro HideName;
         public static void Postfix(GameStartManager __instance)
         {
+            Lotus.Utilities.ModerationNotice.Reset();
+            Lotus.Utilities.MobileOnboarding.Reset();
+            Lotus.Utilities.LobbyPreflight.Reset();
             __instance.GameRoomNameCode.text = GameCode.IntToGameName(AmongUsClient.Instance.GameId);
 
             HideName = Object.Instantiate(__instance.GameRoomNameCode, __instance.GameRoomNameCode.transform);
@@ -87,6 +90,7 @@ public class GameStartRandomMap
         {
             return false;
         }
+        if (!Lotus.Utilities.LobbyPreflight.CheckBeforeStart()) return false;
         if (GeneralOptions.AdminOptions.HostGM) LogManager.SendInGame("[Info] GM is Enabled");
 
         PetWarning.CheckForPets();

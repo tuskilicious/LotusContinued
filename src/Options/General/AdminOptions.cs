@@ -86,7 +86,7 @@ public class AdminOptions: LotusOptionHolder
 
         AllOptions.Add(new GameOptionBuilder()
             .Builder("Kick Players Under Level", _optionColor)
-            .AddIntRange(1, 100, 1)
+            .AddIntRange(1, 100, 1, 100)
             .Value(v => v.Text(GeneralOptionTranslations.DisabledText).Value(0).Color(Color.red).Build())
             .Name(AdminOptionTranslations.AutoKickUnderLevel)
             .BindInt(i => KickPlayersUnderLevel = i)
@@ -157,6 +157,24 @@ public class AdminOptions: LotusOptionHolder
 
         AllOptions.Where(o => !o.Attributes.ContainsKey("Title")).ForEach(o => GeneralOptions.StandardOptionManager.Register(o, VentLib.Options.OptionLoadMode.LoadOrCreate));
         PostInitialize();
+    }
+
+    public void ApplyFriendsPreset()
+    {
+        foreach (string key in new[] { "Kick Players Without Friendcode", "Kick Mobile Players", "Enable Whitelist" })
+            DisableJoinFilter(key, false);
+        DisableJoinFilter("Kick Players Under Level", 0);
+    }
+
+    private void DisableJoinFilter(string key, object value)
+    {
+        var option = AllOptions.First(o => o.Key() == key);
+        object previous = option.GetValue();
+        if (Equals(previous, value)) return;
+        option.SetHardValue(value);
+        // The framework persists user edits through increment/decrement events.
+        option.NotifySubscribers(new VentLib.Options.Events.OptionValueDecrementEvent(option,
+            VentLib.Utilities.Optionals.Optional<object>.Of(previous), value));
     }
 
     [Localized("Admin")]

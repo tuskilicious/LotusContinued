@@ -31,11 +31,13 @@ public class PlayerJoinPatch
 
     public static void Postfix(AmongUsClient __instance, [HarmonyArgument(0)] ClientData client)
     {
+        ModerationNotice.OnJoin(client.Id);
         log.Trace($"{client.PlayerName} (ClientID={client.Id}) (Platform={client.PlatformData.Platform}) (FriendCode={client.FriendCode}) joined the game.", "Session");
-        if (DestroyableSingleton<FriendsListManager>.Instance.IsPlayerBlockedUsername(client.FriendCode) && AmongUsClient.Instance.AmHost)
+        if (AmongUsClient.Instance.AmHost && DestroyableSingleton<FriendsListManager>.Instance.IsPlayerBlockedUsername(client.FriendCode))
         {
-            AmongUsClient.Instance.KickPlayer(client.Id, true);
+            ModerationNotice.Kick(client.Id, client.PlayerName, "Blocked by the host's block list.", true, ModerationReason.BlockedList);
             log.Info($"ブロック済みのプレイヤー{client.PlayerName}({client.FriendCode})をBANしました。", "BAN");
+            return;
         }
 
         string playerName = client.PlayerName;
@@ -59,23 +61,33 @@ public class PlayerJoinPatch
             Hooks.PlayerHooks.PlayerJoinHook.Propagate(new PlayerHookEvent(player));
             return;
         }
-        bool kickPlayer = false;
-        kickPlayer = kickPlayer || GeneralOptions.AdminOptions.KickPlayersWithoutFriendcodes && client.FriendCode == "" && AmongUsClient.Instance.NetworkMode is not NetworkModes.LocalGame;
-        kickPlayer = kickPlayer || client.PlatformData.Platform is Android or IPhone && GeneralOptions.AdminOptions.KickMobilePlayers;
+        string? rejection = null;
+        if (GeneralOptions.AdminOptions.KickPlayersWithoutFriendcodes && string.IsNullOrEmpty(client.FriendCode)
+            && AmongUsClient.Instance.NetworkMode is not NetworkModes.LocalGame)
+            rejection = "Kick Players Without Friendcode is enabled; no friend code was supplied.";
+        else if (client.PlatformData.Platform is Android or IPhone && GeneralOptions.AdminOptions.KickMobilePlayers)
+            rejection = "Kick Mobile Players is enabled.";
 
-        if (kickPlayer)
+        if (rejection != null)
         {
-            log.Trace($"{playerName} was kicked because one of the kick options are on in the Admin Settings area.");
-            AmongUsClient.Instance.KickPlayer(client.Id, false);
+            ModerationNotice.Kick(client.Id, playerName, rejection, diagnosticReason:
+                rejection.StartsWith("Kick Mobile") ? ModerationReason.MobileBlocked : ModerationReason.MissingFriendCode);
             return;
         }
 
         if (PluginDataManager.WhitelistManager.CheckWhitelistPlayer(player, client))
+        {
             log.Trace($"{playerName} was kicked because they weren't on the whitelist.");
+            return;
+        }
         if (PluginDataManager.BanManager.CheckBanPlayer(player, client))
+        {
             log.Trace($"{playerName} was banned because they are on the host's banlist.");
+            return;
+        }
 
         Hooks.PlayerHooks.PlayerJoinHook.Propagate(new PlayerHookEvent(player));
+        MobileOnboarding.OnJoin(client, player);
         CheckAutostart();
     }
 

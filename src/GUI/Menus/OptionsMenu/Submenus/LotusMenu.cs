@@ -118,6 +118,11 @@ public class LotusMenu : MonoBehaviour, IBaseOptionMenuComponent
         keybindsGuiToggle.SetState(ClientOptions.AdvancedOptions.KeybindGuiToggleVisible);
         keybindsGuiToggle.transform.localPosition = new Vector3(0.029f, -0.328f, -1f);
 
+        GameObject diagnosticsObject = anchorObject.CreateChild("Copy Diagnostics", new Vector3(2.048f, -0.328f, -1f));
+        var diagnosticsButton = diagnosticsObject.AddComponent<MonoToggleButton>();
+        diagnosticsButton.runActionOnStart = false;
+        diagnosticsButton.ConfigureAsPressButton("Copy diagnostics", () => { titleHeader.fontSize = 2f; titleHeader.text = DiagnosticsExport.Copy(); });
+
         /// Done
         anchorObject.SetActive(false);
     }
@@ -125,6 +130,7 @@ public class LotusMenu : MonoBehaviour, IBaseOptionMenuComponent
     public virtual void Open()
     {
         anchorObject.SetActive(true);
+        titleHeader.fontSize = 5.35f;
         Async.Schedule(() => titleHeader.text = "Lotus Settings", .01f);
         if (titleHeader.color != Color.white)
             Async.Schedule(() =>

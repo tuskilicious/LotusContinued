@@ -28,8 +28,12 @@ public class PlayerControl
     public byte PlayerId;
     public string name = "Player";
     public PlayerData Data = new();
+    public Cosmetics cosmetics = new();
 }
-public class PlayerData { public string PlayerName = "Player"; }
+public class PlayerData { public string PlayerName = "Player"; public bool Disconnected; }
+public class Cosmetics { public Pet CurrentPet = new(); }
+public class Pet { public PetData Data = new(); }
+public class PetData { public string ProductId = "pet_EmptyPet"; }
 public class AmongUsClient
 {
     public static AmongUsClient Instance = new();
@@ -45,12 +49,13 @@ public class GameStartManager
     public static GameStartManager Instance = new();
     public float countDownTimer;
     public int StartCount, ResetCount;
-    public void BeginGame() => StartCount++;
+    public Func<bool>? AllowStart;
+    public void BeginGame() { if (AllowStart?.Invoke() ?? true) StartCount++; }
     public void ResetStartState() => ResetCount++;
     public void Update() { }
 }
 public class DestroyableSingleton<T> where T : new() { public static T Instance = new(); }
-public class FriendsListManager { public bool IsPlayerBlockedUsername(string friendCode) => false; }
+public class FriendsListManager { public bool Blocked; public bool IsPlayerBlockedUsername(string friendCode) => Blocked; }
 namespace InnerNet
 {
     public enum DisconnectReasons { ExitGame }
@@ -83,6 +88,10 @@ namespace VentLib.Utilities
 {
     public static class Async
     {
+        public static List<Action> Scheduled = new();
+        public static void Schedule(Action action, float delay) => Scheduled.Add(action);
+        public static void RunScheduled() { var actions = Scheduled.ToArray(); Scheduled.Clear(); foreach (var action in actions) action(); }
+
         public static void WaitUntil<T>(Func<T> supplier, Func<T, bool> check, Action<T> callback, int maxRetries)
         {
             T value = supplier();
@@ -116,10 +125,11 @@ namespace Lotus.Managers
     {
         public int Shown;
         public void RegisterTag(string tag, string description) { }
-        public void ShowAll(string tag, PlayerControl player) => Shown++;
+        public string? LastTag; public object? LastData;
+        public void ShowAll(string tag, PlayerControl player, object? data = null) { Shown++; LastTag = tag; LastData = data; }
     }
-    public class WhitelistManagerStub { public bool CheckWhitelistPlayer(PlayerControl player, InnerNet.ClientData client) => false; }
-    public class BanManagerStub { public bool CheckBanPlayer(PlayerControl player, InnerNet.ClientData client) => false; }
+    public class WhitelistManagerStub { public bool Reject; public bool CheckWhitelistPlayer(PlayerControl player, InnerNet.ClientData client) => Reject; }
+    public class BanManagerStub { public bool Reject; public bool CheckBanPlayer(PlayerControl player, InnerNet.ClientData client) => Reject; }
 }
 namespace Lotus.Managers.Templates.Models.Units
 {
@@ -132,7 +142,7 @@ namespace Lotus.Managers.Templates.Models.Units
 namespace Lotus.API.Odyssey
 {
     public enum GameState { InLobby, InIntro, Roaming }
-    public static class Game { public static GameState State; public static MatchData MatchData = new(); }
+    public static class Game { public static GameState State; public static object CurrentGameMode = new(); public static MatchData MatchData = new(); }
     public class MatchData
     {
         public RoleData Roles = new();
@@ -164,7 +174,9 @@ namespace Lotus.Options
     public static class GeneralOptions { public static AdminOptionValues AdminOptions = new(); }
     public class AdminOptionValues
     {
-        public bool KickPlayersWithoutFriendcodes, KickMobilePlayers, AutoStartEnabled;
+        public bool HostGM;
+        public bool KickPlayersWithoutFriendcodes, KickMobilePlayers, AutoStartEnabled, EnableWhitelist;
+        public int KickPlayersUnderLevel;
         public int AutoStartPlayerThreshold = -1, AutoStartMaxTime = -1;
         public float AutoStartGameCountdown = 10;
         public Cooldown AutoCooldown = new();
@@ -184,3 +196,38 @@ namespace Lotus.Roles.Operations
 }
 namespace Lotus.RPC.CustomObjects { }
 namespace xCloud { }
+
+namespace Lotus.Chat
+{
+    public class ChatHandler(string message)
+    {
+        public static List<(string message, PlayerControl player)> Sent = new();
+        public static ChatHandler Of(string message, string? title = null) => new(message);
+        public void Send(PlayerControl player) => Sent.Add((message, player));
+    }
+}
+
+public static class ProjectLotus { public static NormalOptions NormalOptions = new(); }
+public class NormalOptions { public int NumImpostors = 1; }
+namespace Lotus.GameModes.Normal.Standard { public class NormalStandardGameMode { } }
+namespace Lotus.API.Player { public static class Players { public static IEnumerable<PlayerControl> GetAllPlayers() => PlayerControl.AllPlayerControls; } }
+namespace Lotus.Options
+{
+    public static class RoleOptions { public static NeutralOptions Neutral = new(); public static NeutralOptions LoadNeutralOptions() => Neutral; }
+    public class NeutralOptions { public int MinimumNeutralPassiveRoles, MaximumNeutralPassiveRoles, MinimumNeutralKillingRoles, MaximumNeutralKillingRoles; }
+}
+namespace Lotus.Roles
+{
+    [Flags] public enum RoleAbilityFlag { None, UsesPet }
+    public class CustomRole { public int Count, Chance; public Lotus.Roles.Internals.Enums.RoleFlag RoleFlags; public RoleAbilityFlag RoleAbilityFlags; }
+}
+namespace Lotus.Roles.Internals.Enums { [Flags] public enum RoleFlag { None, IsSubrole } }
+namespace Lotus.Roles.Managers.Interfaces
+{
+    public class IRoleManager
+    {
+        public static IRoleManager Current = new();
+        public List<Lotus.Roles.CustomRole> Roles = new();
+        public IEnumerable<Lotus.Roles.CustomRole> AllCustomRoles() => Roles;
+    }
+}

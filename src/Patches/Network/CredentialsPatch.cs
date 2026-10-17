@@ -28,18 +28,7 @@ public class VersionShowerStartPatch
     public static TextMeshPro? SpecialEventText;
     static void Postfix(VersionShower __instance)
     {
-        ProjectLotus.CredentialsText = "\r\n";
-#if DEBUG
-        ProjectLotus.CredentialsText += $"v{ProjectLotus.PluginVersion}";
-        ProjectLotus.CredentialsText += $" ({ProjectLotus.DevVersionStr})\n";
-#endif
-
-        ProjectLotus.CredentialsText += $"{_startColor.Colorize(ProjectLotus.ModName)}";
-#if DEBUG
-        ProjectLotus.CredentialsText += $": {_endColor.Colorize($"{ProjectLotus.Instance.Version().Branch}({ProjectLotus.Instance.Version().CommitNumber})")}";
-#else
-        ProjectLotus.CredentialsText += $" v{ProjectLotus.PluginVersion}";
-#endif
+        ProjectLotus.CredentialsText = "\r\n" + Lotus.Utilities.BuildIdentity.Display;
 
         int addonCount = AddonManager.Addons.Count;
         if (addonCount > 0)
