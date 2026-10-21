@@ -1,4 +1,4 @@
-param([string]$OutputDirectory = 'artifacts/release-au19.4')
+param([string]$OutputDirectory = 'artifacts/release-au19.5')
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $root = Split-Path $PSScriptRoot -Parent
@@ -42,11 +42,11 @@ New-Item -ItemType Directory -Path $plugins -Force | Out-Null
 Copy-Item "$root/bin/Release/net6.0/Lotus.dll" $plugins
 Copy-Item "$root/.dependencies/VentFramework-Continued/bin/Release/net6.0/VentFrameworkContinued.dll" $plugins
 Copy-Item "$plugins/Lotus.dll","$plugins/VentFrameworkContinued.dll" $output
-Copy-Item "$root/docs/RELEASE-au19.4.md" "$stage/INSTALL.md"
+Copy-Item "$root/docs/RELEASE-au19.5.md" "$stage/INSTALL.md"
 Copy-Item "$root/docs/DEPENDENCY_AUDIT.md" $stage
 Copy-Item "$root/LICENSE" "$stage/LICENSE-Lotus.txt"
 Copy-Item "$root/.dependencies/VentFramework-Continued/LICENSE" "$stage/LICENSE-VentFramework.txt"
-$zip = Join-Path $output 'Lotus-1.7.3-au19.4-Epic-x64.zip'
+$zip = Join-Path $output 'Lotus-1.7.3-au19.5-Epic-x64.zip'
 [IO.Compression.ZipFile]::CreateFromDirectory($stage,$zip)
 $releaseFiles = @($zip,(Join-Path $output 'Lotus.dll'),(Join-Path $output 'VentFrameworkContinued.dll'))
 $releaseFiles | ForEach-Object { $hash=Get-FileHash -LiteralPath $_ -Algorithm SHA256; $hash.Hash.ToLowerInvariant() + '  ' + [IO.Path]::GetFileName($_) } | Set-Content (Join-Path $output 'SHA256SUMS.txt')
