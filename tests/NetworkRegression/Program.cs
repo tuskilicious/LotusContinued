@@ -66,6 +66,39 @@ var tests = new (string name, Action run)[]
         Equal(0, hud.Clears);
         Equal(0, VentLib.Networking.RPC.RpcV3.Recipients.Count);
     }),
+    ("Anti-blackout patches do not leak between clients", () =>
+    {
+        // Player 2 is dead. Player 1's patch revives them, as AntiBlackoutLogic does for dead crewmates.
+        var real = new Dictionary<byte, (bool isDead, bool isDisconnected)> { [1] = (false, false), [2] = (true, false), [3] = (false, false) };
+        var live = new Dictionary<byte, (bool isDead, bool isDisconnected)>(real);
+        var seen = new Dictionary<byte, Dictionary<byte, (bool isDead, bool isDisconnected)>>();
+        var sent = new Dictionary<byte, Dictionary<byte, (bool isDead, bool isDisconnected)>>();
+        AntiBlackoutStates.SendEach(new byte[] { 1, 2, 3 }, real,
+            states => { foreach (var state in states) live[state.Key] = state.Value; },
+            client =>
+            {
+                seen[client] = new(live);
+                return client == 1 ? new() { [2] = (false, false) } : new();
+            },
+            client => sent[client] = new(live));
+        Equal((false, false), sent[1][2]);
+        Equal((true, false), seen[2][2]);
+        Equal((true, false), sent[2][2]);
+        Equal((true, false), sent[3][2]);
+        Equal((true, false), live[2]);
+    }),
+    ("Unpatchable anti-blackout clients are skipped and real data restored", () =>
+    {
+        var real = new Dictionary<byte, (bool isDead, bool isDisconnected)> { [1] = (true, false), [2] = (false, false) };
+        var live = new Dictionary<byte, (bool isDead, bool isDisconnected)>(real);
+        var sent = new List<byte>();
+        AntiBlackoutStates.SendEach(new byte[] { 1, 2 }, real,
+            states => { foreach (var state in states) live[state.Key] = state.Value; },
+            client => client == 1 ? null : new() { [1] = (false, false) },
+            client => sent.Add(client));
+        Equal(2, sent.Single());
+        Equal((true, false), live[1]);
+    }),
     ("Balanced four-player settings pass preflight", () =>
     {
         Equal(0, LobbyPreflightRules.Check(new LobbySetup(4, false, 1, 0, 0, 0, 0, 4, false, 0)).Count);

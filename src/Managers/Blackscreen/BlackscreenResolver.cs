@@ -59,33 +59,25 @@ internal class BlackscreenResolver : IBlackscreenResolver
         playerStates = playerInfos.ToDict(i => i.PlayerId, i => (i.IsDead, i.Disconnected));
 
         // Update and send new data for each player.
-        foreach (PlayerControl player in Players.GetPlayers())
+        IEnumerable<PlayerControl> vanillaClients = Players.GetPlayers().Where(player =>
+            player != null
+            && playerStates.TryGetValue(player.PlayerId, out var state) && !state.isDisconnected
+            && !player.IsHost() && !player.IsModded()
+            && player.GetClientId() != -1);
+
+        AntiBlackoutStates.SendEach(vanillaClients, playerStates, ApplyStates, player =>
         {
-            if (player == null) continue;
-            if (!playerStates.TryGetValue(player.PlayerId, out var state) || state.isDisconnected) continue;
-            if (player.IsHost() || player.IsModded()) continue;
-            int clientId = player.GetClientId();
-            if (clientId == -1) continue;
-            Dictionary<byte, (bool isDead, bool isDisconnected)> myStates;
-            // Reset to the real states first, otherwise each player's patch leaks into every player after them
-            // (e.g. a dead player receiving data that says they are alive, which gets them kicked by anticheat).
-            ApplyStates(playerStates);
             try
             {
-                myStates = AntiBlackoutLogic.PatchedData(player, exiledPlayer);
+                return AntiBlackoutLogic.PatchedData(player, exiledPlayer);
             }
             catch (Exception ex)
             {
-                myStates = null!;
                 if (ex.Message == "unpatchable.") unpatchable.Add(player.PlayerId);
                 else log.Exception(ex);
+                return null;
             }
-            if (myStates == null) continue;
-
-            ApplyStates(myStates);
-            GeneralRPC.SendGameData(clientId);
-        }
-        ApplyStates(playerStates);
+        }, player => GeneralRPC.SendGameData(player.GetClientId()));
         if (unpatchable.Count == 0) return;
 
         log.Debug($"Un-patchable Players: {unpatchable.Filter(Utils.PlayerById).Select(p => p.name).Fuse()}");

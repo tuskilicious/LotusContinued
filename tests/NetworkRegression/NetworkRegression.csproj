@@ -24,6 +24,7 @@
     <Compile Include="../../src/Utilities/MobileOnboarding.cs" Link="Source/MobileOnboarding.cs" />
     <Compile Include="../../src/Utilities/LobbyPreflight.cs" Link="Source/LobbyPreflight.cs" />
     <Compile Include="../../src/Utilities/VoteReset.cs" Link="Source/VoteReset.cs" />
+    <Compile Include="../../src/Utilities/AntiBlackoutStates.cs" Link="Source/AntiBlackoutStates.cs" />
     <Compile Include="../../src/Utilities/ScannerFeedback.cs" Link="Source/ScannerFeedback.cs" />
   </ItemGroup>
 </Project>
