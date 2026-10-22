@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Lotus.API.Player;
@@ -9,6 +10,7 @@ using Lotus.Factions.Impostors;
 using Lotus.Options;
 using Lotus.Options.General;
 using Lotus.Roles;
+using Lotus.Utilities;
 using VentLib.Localization.Attributes;
 using VentLib.Utilities;
 using VentLib.Utilities.Extensions;
@@ -132,37 +134,15 @@ public class MeetingDelegate
 
     public void CalculateExiledPlayer()
     {
-        List<KeyValuePair<byte, int>> sortedVotes = this.CurrentVoteCount().Sorted(kvp => kvp.Value).Reverse().ToList();
-        bool isTie = false;
-        byte exiledPlayer = byte.MaxValue;
-        int mostVotes = 0;
-        switch (sortedVotes.Count)
-        {
-            case 0: break;
-            case 1:
-                mostVotes = sortedVotes[0].Value;
-                exiledPlayer = sortedVotes[0].Key;
-                break;
-            case >= 2:
-                mostVotes = sortedVotes[0].Value;
-                isTie = sortedVotes[0].Value == sortedVotes[1].Value;
-                exiledPlayer = sortedVotes[0].Key;
-                break;
-        }
+        Func<List<byte>, byte>? pickTied = GeneralOptions.MeetingOptions.ResolveTieMode is ResolveTieMode.Random ? tied => tied.GetRandom() : null;
+        (byte exiledPlayer, bool isTie, HashSet<byte> tiedPlayers) = ExileVote.Calculate(CurrentVoteCount(), pickTied);
 
-        TiedPlayers = sortedVotes.Where(sv => sv.Value == mostVotes).Select(sv => sv.Key).ToHashSet();
-
-        this.ExiledPlayer = Players.PlayerById(exiledPlayer).Map(p => p.Data).OrElse(null!);
+        TiedPlayers = tiedPlayers;
         this.IsTie = isTie;
+        this.ExiledPlayer = Players.PlayerById(exiledPlayer).Map(p => p.Data).OrElse(null!);
 
-        string mostVotedPlayer = this.ExiledPlayer?.Object != null ? this.ExiledPlayer.Object.name : "Unknown";
-        log.Trace($"Calculated player votes. Player with most votes = {mostVotedPlayer}, isTie = {isTie}");
-
-        if (!IsTie) return;
-        // Random tie mode picks now but leaves IsTie set, so roles that run afterwards (Tie Breaker, Dictator, Jailor) still win.
-        this.ExiledPlayer = GeneralOptions.MeetingOptions.ResolveTieMode is ResolveTieMode.Random
-            ? Players.PlayerById(TiedPlayers.ToList().GetRandom()).Map(p => p.Data).OrElse(null!)
-            : null;
+        string exiledName = this.ExiledPlayer?.Object != null ? this.ExiledPlayer.Object.name : "No One";
+        log.Trace($"Calculated player votes. Exiled = {exiledName}, isTie = {isTie}");
     }
 
     public void CheckAndSetConfirmEjectText(PlayerControl player)

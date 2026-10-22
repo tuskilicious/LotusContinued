@@ -29,7 +29,7 @@ internal class BlackscreenResolver : IBlackscreenResolver
 
     private Dictionary<byte, (bool isDead, bool isDisconnected)> playerStates = null!;
     private MeetingDelegate meetingDelegate;
-    private HashSet<byte> unpatchable;
+    private HashSet<byte> unpatchable = new();
 
     private bool _patching;
 

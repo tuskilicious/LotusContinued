@@ -82,6 +82,12 @@ public class CheckForEndVotingPatch
         // Once someone is actually being exiled it is no longer a tie.
         if (meetingDelegate.ExiledPlayer != null) meetingDelegate.IsTie = false;
 
+        // Kill All tie mode: everyone tied for the most votes dies, unless a role already resolved the tie or skip is part of the tie.
+        if (GeneralOptions.MeetingOptions.ResolveTieMode is ResolveTieMode.KillAll && meetingDelegate.IsTie && meetingDelegate.ExiledPlayer == null
+            && !meetingDelegate.TiedPlayers.Contains(ExileVote.NoExile))
+            foreach (byte tiedPlayer in meetingDelegate.TiedPlayers)
+                Players.PlayerById(tiedPlayer).IfPresent(p => ProtectedRpc.CheckMurder(p, p));
+
         // Read after roles so the voter list matches who is actually exiled
         byte exiledPlayer = meetingDelegate.ExiledPlayer?.PlayerId ?? 255;
 

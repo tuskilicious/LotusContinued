@@ -99,6 +99,32 @@ var tests = new (string name, Action run)[]
         Equal(2, sent.Single());
         Equal((true, false), live[1]);
     }),
+    ("Clear majority exiles the most voted player", () =>
+    {
+        var result = ExileVote.Calculate(new Dictionary<byte, int> { [1] = 3, [2] = 1, [255] = 0 }, _ => throw new Exception("No tie to pick"));
+        Equal((byte)1, result.exiled);
+        Equal(false, result.isTie);
+    }),
+    ("Tie without random mode exiles no one", () =>
+    {
+        var result = ExileVote.Calculate(new Dictionary<byte, int> { [1] = 2, [2] = 2, [255] = 0 }, null);
+        Equal(ExileVote.NoExile, result.exiled);
+        Equal(true, result.isTie);
+        Equal(2, result.tied.Count);
+    }),
+    ("Random tie pick stays a tie so roles can still override it", () =>
+    {
+        var result = ExileVote.Calculate(new Dictionary<byte, int> { [1] = 2, [2] = 2, [3] = 1, [255] = 0 }, tied => tied.Max());
+        Equal((byte)2, result.exiled);
+        Equal(true, result.isTie);
+        Equal(false, result.tied.Contains(3));
+    }),
+    ("Random tie with skip can exile no one", () =>
+    {
+        var result = ExileVote.Calculate(new Dictionary<byte, int> { [4] = 2, [255] = 2 }, tied => tied.Max());
+        Equal(ExileVote.NoExile, result.exiled);
+        Equal(true, result.isTie);
+    }),
     ("Balanced four-player settings pass preflight", () =>
     {
         Equal(0, LobbyPreflightRules.Check(new LobbySetup(4, false, 1, 0, 0, 0, 0, 4, false, 0)).Count);
