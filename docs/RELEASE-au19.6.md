@@ -43,6 +43,7 @@ When reporting, include the output of `/cmd build`, `BepInEx/LogOutput.log`, and
 
 - Resolve Tie Mode "Kill All" was selectable but did nothing. Tied players now die, unless a role resolved the tie or Skip is part of it.
 - Added regression checks for the prerelease 5 fixes: anti-blackout data no longer leaks between clients, and random tie picks stay overridable by roles. Both checks fail on the old code.
+- Fixed six Unity errors logged at startup: menu texture replacement was copying Lotus's own replacement textures onto themselves.
 - Fixed a compiler warning in the blackscreen resolver.
 
 ## Prerelease 5 fixes
