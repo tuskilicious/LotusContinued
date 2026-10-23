@@ -33,6 +33,7 @@ using Lotus.Managers.History.Events;
 using Lotus.Roles.Interfaces;
 using Lotus.RPC.CustomObjects.Interfaces;
 using Lotus.Utilities;
+using VentLib.Commands;
 using UnityEngine;
 using VentLib.Utilities.Collections;
 using static Lotus.Roles.Subroles.Guesser;
@@ -64,7 +65,7 @@ public class GuesserRole : CustomRole, IInfoResender
 
     public void ResendMessages()
     {
-        GuesserMessage(Translations.HintMessage.Formatted(guessesThisMeeting)).Send(MyPlayer);
+        GuesserMessage(Translations.GuessHint.Formatted(guessesThisMeeting)).Send(MyPlayer);
     }
 
     [RoleAction(LotusActionType.RoundEnd)]
@@ -85,15 +86,17 @@ public class GuesserRole : CustomRole, IInfoResender
     public void SelectPlayerToGuess(Optional<PlayerControl> player, MeetingDelegate _, ActionHandle handle)
     {
         if (skippedVote || guessesThisMeeting <= 0 || meetingEnded) return;
-        handle.Cancel();
         VoteResult result = voteSelector.CastVote(player);
+        // Skipping, or voting the selected player again without picking a role, counts as a normal vote. Every other vote is part of a guess.
+        bool normalVote = result.VoteResultType is VoteResultType.Skipped || result.VoteResultType is VoteResultType.Confirmed && guessedRole == null;
+        if (!normalVote) handle.Cancel();
         switch (result.VoteResultType)
         {
             case VoteResultType.None:
                 break;
             case VoteResultType.Skipped:
                 skippedVote = true;
-                GuesserMessage(Translations.SkippedGuessing).Send(MyPlayer);
+                GuesserMessage(Translations.SkipVoteCounts).Send(MyPlayer);
                 break;
             case VoteResultType.Selected:
                 PlayerControl? targetPlayer = Players.FindPlayerById(result.Selected);
@@ -102,7 +105,7 @@ public class GuesserRole : CustomRole, IInfoResender
                 if (reason is CancelGuessReason.None)
                 {
                     guessingPlayer = result.Selected;
-                    GuesserMessage(Translations.PickedPlayerText.Formatted(targetPlayer.name)).Send(MyPlayer);
+                    GuesserMessage(Translations.PickedPlayerHint.Formatted(targetPlayer.name)).Send(MyPlayer);
                 }
                 else
                     GuesserMessage(reason switch
@@ -116,10 +119,11 @@ public class GuesserRole : CustomRole, IInfoResender
             case VoteResultType.Confirmed:
                 if (guessedRole == null)
                 {
+                    skippedVote = true;
+                    guessingPlayer = byte.MaxValue;
                     voteSelector.Reset();
-                    voteSelector.CastVote(player);
-                    SelectPlayerToGuess(player, _, handle);
-                    return;
+                    GuesserMessage(Translations.VotedNormally.Formatted(player.Map(p => p.name).OrElse("?"))).Send(MyPlayer);
+                    break;
                 }
 
                 PlayerControl? guessed = Players.FindPlayerById(guessingPlayer);
@@ -150,8 +154,8 @@ public class GuesserRole : CustomRole, IInfoResender
         if (!isAlive) return;
         if (state is not GameState.InMeeting) return;
         if (guessingPlayer == byte.MaxValue) return;
-        if (!message.StartsWith("/cmd")) return;
-        string roleName = message.Substring("/cmd".Length).Trim().ToLower();
+        string? roleName = CommandAlias.Argument(message, CommandRunner.Prefix)?.ToLower();
+        if (roleName == null) return;
         if (string.IsNullOrEmpty(roleName))
         {
             ChatHandlers.InvalidCmdUsage().Send(MyPlayer);
@@ -178,7 +182,7 @@ public class GuesserRole : CustomRole, IInfoResender
             guessedRole = role.Get();
             GuesserMessage(Translations.PickedRoleText.Formatted(Players.FindPlayerById(guessingPlayer)?.name, guessedRole.RoleName)).Send(MyPlayer);
         }
-        else GuesserMessage(Translations.UnknownRole.Formatted(roleName)).Send(MyPlayer);
+        else GuesserMessage(Translations.UnknownRoleHint.Formatted(roleName)).Send(MyPlayer);
 
         debounce = false;
     }
@@ -192,23 +196,27 @@ public class GuesserRole : CustomRole, IInfoResender
     protected virtual void ResetGuessableRoles()
     {
         lastFaction = Faction;
-        guessableRoles = [];
-
-        guessableRoles = NormalStandardRoles.Instance.AllRoles
+        List<CustomRole> enabledRoles = NormalStandardRoles.Instance.AllRoles
             .Where(r => HostTurnedRoleOn(r)
                         || r.GetRoleType() is RoleType.DontShow && r.LinkedRoles().Any(HostTurnedRoleOn)
                         || r.RoleFlags.HasFlag(RoleFlag.VariationRole) && r.LinkedRoles().Any(HostTurnedRoleOn)
                         || r.RoleFlags.HasFlag(RoleFlag.TransformationRole) && r.LinkedRoles().Any(HostTurnedRoleOn))
+            .Where(CanGuessRole)
+            .ToList();
+
+        guessableRoles = enabledRoles
             .Where(r =>
             {
-                bool roleAllowsGuess = CanGuessRole(r);
-                if (!roleAllowsGuess || !followGuesserSettings) return roleAllowsGuess;
+                if (!followGuesserSettings) return true;
                 int setting = -1;
                 RoleTypeBuilders.FirstOrOptional(b => b.predicate(r))
                     .IfPresent(rtb => setting = RoleTypeSettings[RoleTypeBuilders.IndexOf(rtb)]);
                 return setting == -1 || setting == 2 ? CanGuessDictionary.GetValueOrDefault(r.GetType(), -1) == 1 : setting == 1;
             })
             .ToList();
+
+        // Every Guesser team setting defaults to Off, so a fresh config would otherwise leave nothing to guess.
+        if (guessableRoles.Count == 0) guessableRoles = enabledRoles;
 
         bool HostTurnedRoleOn(CustomRole r) => (r.Count > 0 || r.RoleFlags.HasFlag(RoleFlag.RemoveRoleMaximum)) &&
                                                (r.Chance > 0 || r.RoleFlags.HasFlag(RoleFlag.RemoveRolePercent));
