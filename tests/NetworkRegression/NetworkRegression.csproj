@@ -26,6 +26,7 @@
     <Compile Include="../../src/Utilities/VoteReset.cs" Link="Source/VoteReset.cs" />
     <Compile Include="../../src/Utilities/AntiBlackoutStates.cs" Link="Source/AntiBlackoutStates.cs" />
     <Compile Include="../../src/Utilities/ExileVote.cs" Link="Source/ExileVote.cs" />
+    <Compile Include="../../src/Utilities/CommandAlias.cs" Link="Source/CommandAlias.cs" />
     <Compile Include="../../src/Utilities/ScannerFeedback.cs" Link="Source/ScannerFeedback.cs" />
   </ItemGroup>
 </Project>

@@ -99,6 +99,22 @@ var tests = new (string name, Action run)[]
         Equal(2, sent.Single());
         Equal((true, false), live[1]);
     }),
+    ("Short commands are rewritten to the /cmd form", () =>
+    {
+        Func<string, bool> known = alias => alias is "r" or "m" or "help";
+        Equal("/cmd r sniper", CommandAlias.Normalize("/r sniper", "/cmd", known));
+        Equal("/cmd m", CommandAlias.Normalize(" /m ", "/cmd", known));
+        Equal("/cmd help", CommandAlias.Normalize("/help", "/cmd", known));
+    }),
+    ("Prefixed commands and ordinary chat are left alone", () =>
+    {
+        Func<string, bool> known = alias => alias is "r" or "cmd";
+        Equal("/cmd r", CommandAlias.Normalize("/cmd r", "/cmd", known));
+        Equal("/shrug ok", CommandAlias.Normalize("/shrug ok", "/cmd", known));
+        Equal("r please", CommandAlias.Normalize("r please", "/cmd", known));
+        Equal("/", CommandAlias.Normalize("/", "/cmd", known));
+        Equal("/ r", CommandAlias.Normalize("/ r", "/cmd", known));
+    }),
     ("Clear majority exiles the most voted player", () =>
     {
         var result = ExileVote.Calculate(new Dictionary<byte, int> { [1] = 3, [2] = 1, [255] = 0 }, _ => throw new Exception("No tie to pick"));
