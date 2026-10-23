@@ -17,4 +17,14 @@ public static class CommandAlias
         string alias = command.Split(' ', 2)[0];
         return alias.Length > 0 && isCommand(alias) ? $"{prefix} {command}" : chatText;
     }
+
+    /// <summary>
+    /// The text after the prefix or a bare slash ("/cmd sniper" and "/sniper" both give "sniper"), or null when the message doesn't start with a slash.
+    /// </summary>
+    public static string? Argument(string chatText, string prefix)
+    {
+        string trimmed = chatText.Trim();
+        if (trimmed.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return trimmed[prefix.Length..].Trim();
+        return trimmed.StartsWith('/') ? trimmed[1..].Trim() : null;
+    }
 }

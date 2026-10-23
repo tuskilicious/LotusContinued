@@ -16,6 +16,7 @@ using Lotus.Roles.Operations;
 using UnityEngine;
 using VentLib.Commands;
 using VentLib.Networking.RPC;
+using VentLib.Utilities.Extensions;
 
 namespace Lotus.Chat.Patches;
 
@@ -62,6 +63,11 @@ internal class RpcSendChatPatch
     {
         if (RemoveHtmlTags) chatText = Regex.Replace(chatText, "<.*?>", string.Empty);
         if (string.IsNullOrWhiteSpace(chatText) || (!__instance.AmOwner && ConnectionManager.IsVanillaServer))
+        {
+            __result = false;
+            return false;
+        }
+        if (AmongUsClient.Instance.AmHost && __instance.IsHost() && ShortCommands.TryRun(__instance, chatText))
         {
             __result = false;
             return false;

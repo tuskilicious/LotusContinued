@@ -115,6 +115,14 @@ var tests = new (string name, Action run)[]
         Equal("/", CommandAlias.Normalize("/", "/cmd", known));
         Equal("/ r", CommandAlias.Normalize("/ r", "/cmd", known));
     }),
+    ("Guess role names are read with or without /cmd", () =>
+    {
+        Equal("sniper", CommandAlias.Argument("/cmd sniper", "/cmd"));
+        Equal("sniper", CommandAlias.Argument(" /sniper ", "/cmd"));
+        Equal("serial killer", CommandAlias.Argument("/serial killer", "/cmd"));
+        Equal("", CommandAlias.Argument("/", "/cmd"));
+        Equal<string?>(null, CommandAlias.Argument("sniper", "/cmd"));
+    }),
     ("Clear majority exiles the most voted player", () =>
     {
         var result = ExileVote.Calculate(new Dictionary<byte, int> { [1] = 3, [2] = 1, [255] = 0 }, _ => throw new Exception("No tie to pick"));

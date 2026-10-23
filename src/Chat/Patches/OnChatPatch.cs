@@ -34,6 +34,7 @@ public static class OnChatPatch
             UtilsSentList.RemoveAt(UtilsSentList.FindIndex(b => b == sourcePlayer.PlayerId));
             return true;
         }
+        if (!sourcePlayer.IsHost() && ShortCommands.TryRun(sourcePlayer, chatText)) return false;
         Hooks.PlayerHooks.PlayerMessageHook.Propagate(new PlayerMessageHookEvent(sourcePlayer, chatText));
         if (!UseWordList() || !PluginDataManager.ChatManager.HasBannedWord(chatText) || sourcePlayer.IsHost())
         {
