@@ -145,7 +145,8 @@ public class Charmer : Crewmate, IRoleUI
         if (charmedPlayers.ContainsKey(closestPlayer.PlayerId)) return;
         if (CharmPlayer(closestPlayer))
         {
-            charmingCooldown.Start();
+            // "Global" (-1) means the game's kill cooldown, as it already does for the kill button.
+            charmingCooldown.Start(charmingCooldown.Duration < 0 ? AUSettings.KillCooldown() : float.MinValue);
             if (MyPlayer.IsModded()) Vents.FindRPC((uint)ModCalls.UpdateCharmer)?.Send([MyPlayer.OwnerId], taskAbilityCount, true);
         }
     }
@@ -189,7 +190,7 @@ public class Charmer : Crewmate, IRoleUI
         Charmer? charmer = PlayerControl.LocalPlayer.PrimaryRole<Charmer>();
         if (charmer == null) return;
         charmer.taskAbilityCount = taskAbilityCount;
-        if (startCooldown) charmer.charmingCooldown.Start();
+        if (startCooldown) charmer.charmingCooldown.Start(charmer.charmingCooldown.Duration < 0 ? AUSettings.KillCooldown() : float.MinValue);
     }
 
     protected override GameOptionBuilder RegisterOptions(GameOptionBuilder optionStream) =>
