@@ -1,7 +1,11 @@
 using System;
 using System.Collections;
+using System.Linq;
 using System.Reflection;
+using Lotus.API.Odyssey;
+using Lotus.Extensions;
 using Lotus.Managers;
+using Lotus.Roles.Interfaces;
 using Lotus.Utilities;
 using VentLib.Commands;
 
@@ -27,7 +31,7 @@ internal static class ShortCommands
     {
         if (Execute == null || NewContext == null) return false;
         string command = CommandAlias.Normalize(chatText, CommandRunner.Prefix, IsCommand);
-        if (command == chatText) return false;
+        if (command == chatText || IsGuessPick(source, chatText)) return false;
 
         try
         {
@@ -39,6 +43,16 @@ internal static class ShortCommands
             log.Exception(exception);
         }
         return true;
+    }
+
+    // A guesser with a player selected types "/[rolename]"; that is a guess even when the role name is also a command alias.
+    private static bool IsGuessPick(PlayerControl player, string chatText)
+    {
+        if (Game.State is not GameState.InMeeting) return false;
+        string? roleName = CommandAlias.Argument(chatText, CommandRunner.Prefix);
+        if (string.IsNullOrEmpty(roleName)) return false;
+        return player.PrimaryRole() is IGuessInput role && role.TakesGuess(roleName)
+               || player.GetSubroles().OfType<IGuessInput>().Any(subrole => subrole.TakesGuess(roleName));
     }
 
     private static bool IsCommand(string alias) =>

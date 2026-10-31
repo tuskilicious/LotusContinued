@@ -41,7 +41,7 @@ using CollectionExtensions = HarmonyLib.CollectionExtensions;
 
 namespace Lotus.Roles.Builtins;
 
-public class GuesserRole : CustomRole, IInfoResender
+public class GuesserRole : CustomRole, IInfoResender, IGuessInput
 {
     private static readonly StandardLogger log = LoggerFactory.GetLogger<StandardLogger>(typeof(GuesserRole));
 
@@ -173,9 +173,7 @@ public class GuesserRole : CustomRole, IInfoResender
             return;
         }
 
-        Optional<CustomRole> role = guessableRoles.FirstOrOptional(r => r.RoleName.ToLower().Contains(roleName))
-            .CoalesceEmpty(() => guessableRoles.FirstOrOptional(r => r.EnglishRoleName.Contains(roleName)))
-            .CoalesceEmpty(() => guessableRoles.FirstOrOptional(r => r.Aliases.Contains(roleName)));
+        Optional<CustomRole> role = FindGuessableRole(roleName);
 
         if (role.Exists())
         {
@@ -186,6 +184,18 @@ public class GuesserRole : CustomRole, IInfoResender
 
         debounce = false;
     }
+
+    public bool TakesGuess(string roleName)
+    {
+        if (guessingPlayer == byte.MaxValue || meetingEnded || !MyPlayer.IsAlive()) return false;
+        roleName = roleName.Trim().ToLower();
+        return roleName == "available" || roleName != "" && FindGuessableRole(roleName).Exists();
+    }
+
+    private Optional<CustomRole> FindGuessableRole(string roleName) =>
+        guessableRoles.FirstOrOptional(r => r.RoleName.ToLower().Contains(roleName))
+            .CoalesceEmpty(() => guessableRoles.FirstOrOptional(r => r.EnglishRoleName.Contains(roleName)))
+            .CoalesceEmpty(() => guessableRoles.FirstOrOptional(r => r.Aliases.Contains(roleName)));
 
     [RoleAction(LotusActionType.MeetingEnd, ActionFlag.WorksAfterDeath)]
     public void CheckRevive()
