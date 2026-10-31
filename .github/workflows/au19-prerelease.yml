@@ -1,0 +1,63 @@
+name: AU19 build and prerelease
+
+# Every push to the AU19 branch builds and runs the regression checks.
+# Pushing a tag like v1.7.3-au19.10 also packages and publishes that prerelease,
+# using docs/RELEASE-au19.10.md as the notes. The tag must match the version in scripts/package.ps1.
+on:
+  push:
+    branches: [codex/among-us-19-compatibility]
+    tags: ['v*-au19.*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Build and run regression checks
+        shell: pwsh
+        run: ./scripts/build.ps1
+
+      - name: Package
+        id: package
+        shell: pwsh
+        run: |
+          $version = [regex]::Match((Get-Content scripts/package.ps1 -TotalCount 1), 'release-(au19\.\d+)').Groups[1].Value
+          if (!$version) { throw 'Could not read the AU19 version from scripts/package.ps1' }
+          ./scripts/package.ps1 -OutputDirectory artifacts/ci
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lotus-${{ steps.package.outputs.version }}
+          path: |
+            artifacts/ci/Lotus-*-Epic-x64.zip
+            artifacts/ci/Lotus.dll
+            artifacts/ci/VentFrameworkContinued.dll
+            artifacts/ci/SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Publish prerelease
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = '${{ steps.package.outputs.version }}'
+          $tag = '${{ github.ref_name }}'
+          if (!$tag.EndsWith("-$version")) { throw "Tag $tag does not match package version $version" }
+          $notes = "docs/RELEASE-$version.md"
+          if (!(Test-Path $notes)) { throw "Missing release notes $notes" }
+          $files = @((Get-ChildItem artifacts/ci/Lotus-*-Epic-x64.zip).FullName) + @('Lotus.dll', 'VentFrameworkContinued.dll', 'SHA256SUMS.txt' | ForEach-Object { "artifacts/ci/$_" })
+          gh release create $tag --prerelease --verify-tag --title "Lotus 1.7.3 AU19 prerelease $($version.Split('.')[-1])" --notes-file $notes @files
