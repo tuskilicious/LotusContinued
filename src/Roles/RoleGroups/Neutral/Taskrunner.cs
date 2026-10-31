@@ -58,6 +58,8 @@ public class Taskrunner : Crewmate, IPhantomRole
     [RoleAction(LotusActionType.VotingComplete, priority: Priority.Last)]
     private void ClearVotedOut(MeetingDelegate meetingDelegate)
     {
+        // Also spares the Taskrunner from the Kill All tie mode, which kills everyone in TiedPlayers.
+        meetingDelegate.TiedPlayers.Remove(MyPlayer.PlayerId);
         if (meetingDelegate.ExiledPlayer == null) return;
         if (meetingDelegate.ExiledPlayer.PlayerId != MyPlayer.PlayerId) return;
         meetingDelegate.ExiledPlayer = null;

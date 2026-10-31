@@ -185,6 +185,8 @@ public class Jailor: Crewmate, IRoleUI
     [RoleAction(LotusActionType.VotingComplete, priority: Priority.Last)]
     private void ClearVotedOut(MeetingDelegate meetingDelegate)
     {
+        // Also spares the jailed player from the Kill All tie mode, which kills everyone in TiedPlayers.
+        meetingDelegate.TiedPlayers.Remove(jailedPlayer);
         if (meetingDelegate.ExiledPlayer == null) return;
         if (meetingDelegate.ExiledPlayer.PlayerId == jailedPlayer) meetingDelegate.ExiledPlayer = null;
     }
