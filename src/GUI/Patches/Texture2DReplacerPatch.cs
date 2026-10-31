@@ -34,6 +34,8 @@ public class Texture2DReplacerPatch
 
                 Sprite spriteTexture = LotusAssets.LoadAsset<Sprite>(StartPath + texture.name + ".png");
                 if (spriteTexture == null || spriteTexture.texture == null) return;
+                // Our replacement shares the original's name, so skip it rather than copying it onto itself.
+                if (spriteTexture.texture.GetInstanceID() == texture.GetInstanceID()) return;
                 DevLogger.Log($"Replacing {texture.name}.");
 
                 if (OperatingSystem.IsAndroid()) ReplaceTextureAndroid(spriteTexture, texture);

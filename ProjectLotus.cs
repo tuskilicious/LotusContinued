@@ -61,8 +61,8 @@ public class ProjectLotus : BasePlugin, IGitVersionEmitter
 
     public const string MajorVersion = "1";
     public const string MinorVersion = "7"; // Update with each release
-    public const string PatchVersion = "2";
-    public const string BuildNumber = "0005";
+    public const string PatchVersion = "3";
+    public const string BuildNumber = "4";
 
     public static readonly string PluginVersion = typeof(ProjectLotus).Assembly.GetName().Version!.ToString();
 
@@ -70,7 +70,7 @@ public class ProjectLotus : BasePlugin, IGitVersionEmitter
 
     public static readonly string ModName = "Project Lotus";
     public static readonly string ModColor = "#4FF918";
-    public static readonly string DevVersionStr = "Dev April 11 2026";
+    public static readonly string DevVersionStr = "Unofficial AU19 prerelease 10";
 
     public static bool DevVersion { get; } =
 #if DEBUG
@@ -86,6 +86,7 @@ public class ProjectLotus : BasePlugin, IGitVersionEmitter
 
     public static bool FinishedLoading;
     public const bool AdvancedRoleAssignment = true;
+    public static bool HasReactorPlugin;
 
     internal Func<MeetingDelegate, IBlackscreenResolver> GetNewBlackscreenResolver = new(md => new BlackscreenResolver(md));
 
@@ -117,7 +118,7 @@ public class ProjectLotus : BasePlugin, IGitVersionEmitter
             ModUpdateMenu.AddUpdateItem("VentFrameworkContinued", null, ex => ModUpdater.Update(ventAssembly, ex)!);
     }
 
-    public static NormalGameOptionsV10 NormalOptions => GameOptionsManager.Instance.currentNormalGameOptions;
+    public static NormalGameOptionsV12 NormalOptions => GameOptionsManager.Instance.currentNormalGameOptions;
 
     public static GameModeManager GameModeManager = null!;
     public static List<byte> ResetCamPlayerList = null!;
@@ -139,6 +140,7 @@ public class ProjectLotus : BasePlugin, IGitVersionEmitter
         GameModeManager = new GameModeManager();
 
         log.Info("GitVersion - " + CurrentVersion);
+        HasReactorPlugin = IL2CPPChainloader.Instance.Plugins.ContainsKey("gg.reactor.api");
 
         // Setup, order matters here
 

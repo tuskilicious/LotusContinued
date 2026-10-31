@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using AmongUs.GameOptions;
 using Hazel;
 using InnerNet;
+using Lotus.API;
 using Lotus.API.Odyssey;
 using Lotus.API.Player;
 using Lotus.API.Reactive;
@@ -227,7 +228,7 @@ public static class PlayerControlExtensions
     {
         log.Trace($"Exiled (V2): {player.GetNameWithRole()}");
         player.Exiled();
-        RpcV3.Immediate(player.NetId, RpcCalls.Exiled, SendOption.None);
+        RpcV3.Immediate(player.NetId, RpcCalls.Exiled, SendOption.None).Send();
 
         if (!reallyExiled)
         {
@@ -295,7 +296,17 @@ public static class PlayerControlExtensions
         {
             if (predicate(pc)) rangePlayers.Add(pc);
         }
-        return rangePlayers;
+        if (rangePlayers.Count > 0 || player.Data.Role.TeamType == RoleTeamTypes.Impostor) return rangePlayers;
+
+        // Pet abilities on crewmate-based roles get no targets from the vanilla crewmate role, so measure kill range ourselves.
+        float[] distances = AUSettings.KillDistances();
+        if (distances.Length == 0) return rangePlayers;
+        float range = distances[Mathf.Clamp(AUSettings.KillDistance(), 0, distances.Length - 1)];
+        Vector2 position = player.GetTruePosition();
+        return RoleUtils.GetPlayersWithinDistance(player, range, true)
+            .Where(p => !p.inVent && (ignoreColliders || !PhysicsHelpers.AnythingBetween(position, p.GetTruePosition(), Constants.ShipOnlyMask, false)))
+            .Where(p => predicate(p))
+            .ToList();
     }
 
     public static RoleTypes GetVanillaRole(this PlayerControl player) => player.GetTeamInfo().MyRole;
@@ -307,7 +318,7 @@ public static class PlayerControlExtensions
 
     public static bool IsAlive(this PlayerControl target)
     {
-        return target != null && !target.Data.IsDead && !target.Data.Disconnected;
+        return target != null && target.Data != null && !target.Data.IsDead && !target.Data.Disconnected;
     }
 
     public static void RpcResetAbilityCooldown(this PlayerControl target)

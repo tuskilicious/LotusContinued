@@ -32,6 +32,9 @@ class PingTrackerPatch
         __instance.text.sortingOrder = -1;
 
         __instance.text.text += ProjectLotus.CredentialsText;
+        if (AmongUsClient.Instance.AmHost && Game.State is GameState.InLobby)
+            __instance.text.text += "\r\n<size=70%>" + LobbyRestrictions.Current.Summary
+                + "\nFriends preset: /cmd lobby friends</size>";
         if (GeneralOptions.DebugOptions.NoGameEnd) __instance.text.text += $"\r\n" + Utils.ColorString(Color.red, Localizer.Translate("StaticOptions.NoGameEnd"));
         __instance.text.text += $"\r\n" + Game.CurrentGameMode.Name;
 

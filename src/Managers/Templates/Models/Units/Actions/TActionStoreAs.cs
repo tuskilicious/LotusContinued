@@ -10,7 +10,7 @@ public class TActionStoreAs: TActionStore
 
     public override string Execute(string meta, object? data)
     {
-        string storedName = TemplateUnit.FormatStatic(Input.ToString() ?? "");
+        string storedName = TemplateUnit.FormatStatic(Input.ToString() ?? "", data);
         DevLogger.Log($"Storing variable ({meta}) for: \"{storedName}\"");
         StoredVariables[storedName] = meta;
         return storedName;

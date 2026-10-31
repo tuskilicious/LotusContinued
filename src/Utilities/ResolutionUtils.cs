@@ -47,13 +47,15 @@ public class ResolutionUtils
 
     private static void ShrinkScreen()
     {
-        (int width, int height) = AllResolutions[--ResolutionIndex];
+        ResolutionIndex--;
+        (int width, int height) = AllResolutions[ResolutionIndex];
         SetResolution(width, height);
     }
 
     private static void GrowScreen()
     {
-        (int width, int height) = AllResolutions[++ResolutionIndex];
+        ResolutionIndex++;
+        (int width, int height) = AllResolutions[ResolutionIndex];
         SetResolution(width, height);
     }
 }

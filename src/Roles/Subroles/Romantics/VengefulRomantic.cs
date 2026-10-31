@@ -27,11 +27,14 @@ public class VengefulRomantic : Subrole
 
     private IFaction faction = null!;
     private IRemote? remote;
+    private IRemote? arrowRemote;
+    private bool originallyCannotWinAlone;
 
     public override string Identifier() => "♥";
 
     protected override void PostSetup()
     {
+        originallyCannotWinAlone = MyPlayer.PrimaryRole().RoleFlags.HasFlag(RoleFlag.CannotWinAlone);
         MyPlayer.PrimaryRole().RoleFlags |= RoleFlag.CannotWinAlone;
         RoleHolder roleHolder = MyPlayer.NameModel().GetComponentHolder<RoleHolder>();
         remote = roleHolder.Insert(0, new RoleComponent(new LiveString(Translations.Adjective, RoleColor), Game.InGameStates, ViewMode.Additive, MyPlayer));
@@ -61,14 +64,17 @@ public class VengefulRomantic : Subrole
     [RoleAction(LotusActionType.PlayerDeath, ActionFlag.GlobalDetector)]
     public void CheckPlayerDeaths(PlayerControl dead, PlayerControl killer)
     {
-        if (dead.PlayerId != killerId && killer.PlayerId == MyPlayer.PlayerId) MyPlayer.InteractWith(MyPlayer, new UnblockedInteraction(new FatalIntent(), this));
+        if (dead.PlayerId != killerId && killer.PlayerId == MyPlayer.PlayerId && !canKillBystander && dead.PlayerId != MyPlayer.PlayerId)
+            MyPlayer.InteractWith(MyPlayer, new UnblockedInteraction(new FatalIntent(), this));
         else if (dead.PlayerId == killerId)
         {
             killerId = byte.MaxValue;
             if (killer.PlayerId == MyPlayer.PlayerId && suicideAfterRevenge) MyPlayer.InteractWith(MyPlayer, new UnblockedInteraction(new FatalIntent(), this));
             remote?.Delete();
+            arrowRemote?.Delete();
             Async.Schedule(() => MyPlayer.GetSubroles().Remove(this), 0.001f);
             MyPlayer.PrimaryRole().Faction = faction;
+            if (!originallyCannotWinAlone) MyPlayer.PrimaryRole().RoleFlags &= ~RoleFlag.CannotWinAlone;
         }
     }
 
@@ -79,7 +85,7 @@ public class VengefulRomantic : Subrole
         if (!arrowToKiller) return;
 
         LiveString liveString = new(() => RoleUtils.CalculateArrow(MyPlayer, killer, RoleColor));
-        MyPlayer.NameModel().GCH<IndicatorHolder>().Add(new IndicatorComponent(liveString, GameState.Roaming, ViewMode.Absolute, MyPlayer));
+        arrowRemote = MyPlayer.NameModel().GCH<IndicatorHolder>().Add(new IndicatorComponent(liveString, GameState.Roaming, ViewMode.Absolute, MyPlayer));
     }
 
     protected override GameOptionBuilder RegisterOptions(GameOptionBuilder optionStream) =>

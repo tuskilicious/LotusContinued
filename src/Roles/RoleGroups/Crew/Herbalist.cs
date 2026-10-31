@@ -1,3 +1,4 @@
+using Lotus.Utilities;
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Hazel;
@@ -69,8 +70,15 @@ public class Herbalist : Crewmate, IRoleUI
             return;
         }
 
-        RpcV3.Immediate(closestPlayer.NetId, RpcCalls.SetScanner, SendOption.None).Write(true).Write(++MyPlayer.scannerCount).Send(MyPlayer.GetClientId());
-        Async.Schedule(() => FinishBloom(closestPlayer.PlayerId), bloomTime);
+        blooming.Add(closestPlayer.PlayerId);
+        ScannerFeedback.Set(closestPlayer, MyPlayer, true);
+        var match = Game.MatchData;
+        var pendingBlooms = blooming;
+        Async.Schedule(() =>
+        {
+            if (!ReferenceEquals(match, Game.MatchData) || !ReferenceEquals(pendingBlooms, blooming) || closestPlayer == null) return;
+            FinishBloom(closestPlayer.PlayerId);
+        }, bloomTime);
     }
 
     private void RevealPlayer(PlayerControl player)
@@ -88,10 +96,11 @@ public class Herbalist : Crewmate, IRoleUI
 
     private void FinishBloom(byte playerId)
     {
-        blooming.Remove(playerId);
+        if (!blooming.Remove(playerId)) return;
         PlayerControl? player = Players.FindPlayerById(playerId);
         if (player == null) return;
-        RpcV3.Immediate(player.NetId, RpcCalls.SetScanner, SendOption.None).Write(false).Write(++MyPlayer.scannerCount).Send(MyPlayer.GetClientId());
+        ScannerFeedback.Set(player, MyPlayer, false);
+        if (!player.IsAlive() || !MyPlayer.IsAlive() || MyPlayer.PrimaryRole() != this) return;
         _bloomsGrown.Update(MyPlayer.UniquePlayerId(), i => i + 1);
         int count = bloomCounts.Compose(playerId, i => i + 1, () =>
         {

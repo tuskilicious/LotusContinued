@@ -31,11 +31,13 @@ public class PlayerJoinPatch
 
     public static void Postfix(AmongUsClient __instance, [HarmonyArgument(0)] ClientData client)
     {
+        ModerationNotice.OnJoin(client.Id);
         log.Trace($"{client.PlayerName} (ClientID={client.Id}) (Platform={client.PlatformData.Platform}) (FriendCode={client.FriendCode}) joined the game.", "Session");
-        if (DestroyableSingleton<FriendsListManager>.Instance.IsPlayerBlockedUsername(client.FriendCode) && AmongUsClient.Instance.AmHost)
+        if (AmongUsClient.Instance.AmHost && DestroyableSingleton<FriendsListManager>.Instance.IsPlayerBlockedUsername(client.FriendCode))
         {
-            AmongUsClient.Instance.KickPlayer(client.Id, true);
+            ModerationNotice.Kick(client.Id, client.PlayerName, "Blocked by the host's block list.", true, ModerationReason.BlockedList);
             log.Info($"ブロック済みのプレイヤー{client.PlayerName}({client.FriendCode})をBANしました。", "BAN");
+            return;
         }
 
         string playerName = client.PlayerName;
@@ -54,29 +56,44 @@ public class PlayerJoinPatch
 
         client.PlayerName = playerName;
         player.name = playerName;
-        bool kickPlayer = false;
-        kickPlayer = kickPlayer || GeneralOptions.AdminOptions.KickPlayersWithoutFriendcodes && client.FriendCode == "" && AmongUsClient.Instance.NetworkMode is not NetworkModes.LocalGame;
-        kickPlayer = kickPlayer || client.PlatformData.Platform is Android or IPhone && GeneralOptions.AdminOptions.KickMobilePlayers;
-
-        if (kickPlayer)
+        if (!AmongUsClient.Instance.AmHost)
         {
-            log.Trace($"{playerName} was kicked because one of the kick options are on in the Admin Settings area.");
-            AmongUsClient.Instance.KickPlayer(client.Id, false);
+            Hooks.PlayerHooks.PlayerJoinHook.Propagate(new PlayerHookEvent(player));
+            return;
+        }
+        string? rejection = null;
+        if (GeneralOptions.AdminOptions.KickPlayersWithoutFriendcodes && string.IsNullOrEmpty(client.FriendCode)
+            && AmongUsClient.Instance.NetworkMode is not NetworkModes.LocalGame)
+            rejection = "Kick Players Without Friendcode is enabled; no friend code was supplied.";
+        else if (client.PlatformData.Platform is Android or IPhone && GeneralOptions.AdminOptions.KickMobilePlayers)
+            rejection = "Kick Mobile Players is enabled.";
+
+        if (rejection != null)
+        {
+            ModerationNotice.Kick(client.Id, playerName, rejection, diagnosticReason:
+                rejection.StartsWith("Kick Mobile") ? ModerationReason.MobileBlocked : ModerationReason.MissingFriendCode);
             return;
         }
 
         if (PluginDataManager.WhitelistManager.CheckWhitelistPlayer(player, client))
+        {
             log.Trace($"{playerName} was kicked because they weren't on the whitelist.");
+            return;
+        }
         if (PluginDataManager.BanManager.CheckBanPlayer(player, client))
+        {
             log.Trace($"{playerName} was banned because they are on the host's banlist.");
+            return;
+        }
 
         Hooks.PlayerHooks.PlayerJoinHook.Propagate(new PlayerHookEvent(player));
+        MobileOnboarding.OnJoin(client, player);
         CheckAutostart();
     }
 
     public static void CheckAutostart()
     {
-        if (!GeneralOptions.AdminOptions.AutoStartEnabled) return;
+        if (!AmongUsClient.Instance.AmHost || !GeneralOptions.AdminOptions.AutoStartEnabled) return;
         if (GeneralOptions.AdminOptions.AutoStartPlayerThreshold == -1 || PlayerControl.AllPlayerControls.Count < GeneralOptions.AdminOptions.AutoStartPlayerThreshold)
         {
             if (GeneralOptions.AdminOptions.AutoStartMaxTime == -1)
@@ -100,6 +117,7 @@ public class PlayerJoinPatch
     [QuickPostfix(typeof(GameStartManager), nameof(GameStartManager.Update))]
     private static void HookStartManager(GameStartManager __instance)
     {
+        if (!AmongUsClient.Instance.AmHost || !GeneralOptions.AdminOptions.AutoStartEnabled) return;
         if (GeneralOptions.AdminOptions.AutoStartMaxTime == -1) return;
         if (Math.Abs(__instance.countDownTimer - 10f) < 0.5f && _autostartLock.AcquireLock())
             PluginDataManager.TemplateManager.ShowAll("autostart", PlayerControl.LocalPlayer);

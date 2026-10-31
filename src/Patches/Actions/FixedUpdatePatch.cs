@@ -1,3 +1,4 @@
+using Lotus.Utilities;
 using HarmonyLib;
 using Lotus.API.Odyssey;
 using Lotus.Roles.Internals;
@@ -26,8 +27,13 @@ static class FixedUpdatePatch
 
         if (!AmongUsClient.Instance.AmHost) return;
 
-        if (!__instance.IsHost() && Game.State is GameState.InLobby && __instance.Data.PlayerLevel < GeneralOptions.AdminOptions.KickPlayersUnderLevel)
-            AmongUsClient.Instance.KickPlayer(__instance.GetClientId(), false);
+        if (!__instance.IsHost() && Game.State is GameState.InLobby && __instance.Data != null
+            && LobbyRestrictions.Current.RejectsLevel(__instance.Data.PlayerLevel))
+        {
+            ModerationNotice.Kick(__instance.GetClientId(), __instance.name,
+                $"Kick Players Under Level is {GeneralOptions.AdminOptions.KickPlayersUnderLevel}; reported player level is {__instance.Data.PlayerLevel}. Disable it in Host Options or use /cmd lobby friends.", diagnosticReason: ModerationReason.MinimumLevel);
+            return;
+        }
 
         if (Game.State is not GameState.Roaming) return;
         bool isLocalPlayer = __instance.PlayerId == PlayerControl.LocalPlayer.PlayerId;

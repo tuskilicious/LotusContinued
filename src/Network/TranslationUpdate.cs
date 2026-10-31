@@ -27,6 +27,7 @@ public static class TranslationUpdate
         DirectoryInfo lotusLanguageFiles =
             LocalizerSettings.LanguageDirectory.GetDirectory(
                 AssemblyUtils.GetAssemblyRefName(Assembly.GetExecutingAssembly()));
+        if (!lotusLanguageFiles.Exists) lotusLanguageFiles.Create();
         if (OperatingSystem.IsWindows())
         {
             log.Info("Checking language files.");
@@ -54,7 +55,6 @@ public static class TranslationUpdate
         {
             string fallbackEnglishLanguage = LotusAssets.LoadAsset<TextAsset>("Fallback/lang_English.yaml").text;
             string destPath = Path.Combine(lotusLanguageFiles.FullName, "lang_English.yaml");
-            bool fileAlreadyExists = File.Exists(destPath);
             File.WriteAllText(destPath, fallbackEnglishLanguage);
 
             Localizer.Reload(Assembly.GetExecutingAssembly());
@@ -69,12 +69,13 @@ public static class TranslationUpdate
             warningScreen.titleTexxt.text = Localizer.Translate("TranslationUpdate.ErrorTitle", "Translation Update Error");
             warningScreen.bodyText.text = Localizer.Translate("TranslationUpdate.ErrorMessage", "An error occurred while downloading the translation files. A fallback file has been used. It will try to redownload the files again on next launch.");
             warningScreen.button1Text.text = DestroyableSingleton<TranslationController>.Instance.GetString(StringNames.Okay, new Il2CppReferenceArray<Il2CppSystem.Object>(0));
-            warningScreen.button1Text.gameObject.SetActive(fileAlreadyExists);
+            warningScreen.button1Text.gameObject.SetActive(true);
+            warningScreen.button1Trans.gameObject.SetActive(true);
             warningScreen.gameObject.SetActive(true);
-            while (warningScreen.gameObject.activeSelf) yield return null;
+            while (warningScreen != null && warningScreen.gameObject.activeSelf) yield return null;
         }
 
-        if (downloadTask.IsFaulted)
+        if (downloadTask.IsFaulted || downloadTask.IsCanceled)
         {
             if (lotusLanguageFiles.GetFiles().Length > 2) yield break; // we already have language files so don't warn user.
             yield return Fallback();
@@ -115,8 +116,6 @@ public static class TranslationUpdate
 
         if (errorOccured)
         {
-            lotusLanguageFiles.Delete(true);
-            lotusLanguageFiles.Create();
             yield return Fallback();
             yield break;
         }
@@ -133,9 +132,11 @@ public static class TranslationUpdate
         customScreen.SetOneButton();
         customScreen.titleTexxt.text = Localizer.Translate("TranslationUpdate.UpdateTitle", "Translation Update");
         customScreen.bodyText.text = Localizer.Translate("TranslationUpdate.UpdateMessage", "The translation files have been downloaded. Please restart the game for them to apply and take effect correctly.");
-        customScreen.button1Trans.gameObject.SetActive(false);
+        customScreen.button1Text.text = DestroyableSingleton<TranslationController>.Instance.GetString(StringNames.Okay, new Il2CppReferenceArray<Il2CppSystem.Object>(0));
+        customScreen.button1Text.gameObject.SetActive(true);
+        customScreen.button1Trans.gameObject.SetActive(true);
         customScreen.gameObject.SetActive(true);
-        while (true)
+        while (customScreen != null && customScreen.gameObject.activeSelf)
         {
             yield return null;
         }

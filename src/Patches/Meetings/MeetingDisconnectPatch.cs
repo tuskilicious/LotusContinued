@@ -24,7 +24,7 @@ class MeetingDisconnectPatch
             return;
         }
 
-        PlayerVoteArea playerVoteArea = __instance.playerStates.First(pv => pv.TargetPlayerId == pc.PlayerId);
+        PlayerVoteArea playerVoteArea = __instance.playerStates.First(pv => pv.PlayerId.Value == pc.PlayerId);
         playerVoteArea.AmDead = true;
         playerVoteArea.Overlay.gameObject.SetActive(true);
     }

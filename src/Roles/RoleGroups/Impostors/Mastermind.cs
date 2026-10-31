@@ -68,7 +68,8 @@ public class Mastermind : Impostor, IRoleUI
         remotes[target.PlayerId] = textComponents;
         manipulatedPlayers.Add(target.PlayerId);
 
-        Async.Schedule(() => BeginSuicideCountdown(target), 5f);
+        Cooldown playerCooldown = expirationTimers[target.PlayerId] = timeToKill.Clone();
+        Async.Schedule(() => BeginSuicideCountdown(target, playerCooldown), 5f);
         RefreshKillCooldown(target);
         if (MyPlayer.AmOwner) UpdateKillButton(UIManager.KillButton);
         else if (MyPlayer.IsModded()) Vents.FindRPC((uint)ModCalls.UpdateMastermind)?.Send([MyPlayer.OwnerId], CanManipulate);
@@ -131,16 +132,23 @@ public class Mastermind : Impostor, IRoleUI
         ClearManipulated(emitter);
     }
 
-    private void BeginSuicideCountdown(PlayerControl target)
+    private void BeginSuicideCountdown(PlayerControl target, Cooldown playerCooldown)
     {
-        if (target == null) return;
-        Cooldown playerCooldown = expirationTimers[target.PlayerId] = timeToKill.Clone();
+        if (!IsCurrentManipulation(target, playerCooldown)) return;
         LiveString killIndicator = new(_ => KillImploredText.Formatted(Color.white.Colorize(playerCooldown + "s")), RoleColor);
 
         TextComponent textComponent = new(killIndicator, GameState.Roaming, viewers: target);
         remotes.GetOrCompute(target.PlayerId, () => [ null, null ])[1] = target.NameModel().GCH<TextHolder>().Add(textComponent);
-        playerCooldown.StartThenRun(() => ExecuteSuicide(target));
+        playerCooldown.StartThenRun(() =>
+        {
+            if (IsCurrentManipulation(target, playerCooldown)) ExecuteSuicide(target);
+        });
     }
+
+    private bool IsCurrentManipulation(PlayerControl target, Cooldown playerCooldown) =>
+        target != null && target.IsAlive() && manipulatedPlayers.Contains(target.PlayerId)
+        && expirationTimers.TryGetValue(target.PlayerId, out Cooldown? currentCooldown)
+        && ReferenceEquals(currentCooldown, playerCooldown);
 
     private void ExecuteSuicide(PlayerControl target)
     {
@@ -177,6 +185,7 @@ public class Mastermind : Impostor, IRoleUI
     }
 
     [RoleAction(LotusActionType.PlayerDeath, ActionFlag.GlobalDetector | ActionFlag.WorksAfterDeath)] // EVERY OTHER PERSON'S DEATH
+    [RoleAction(LotusActionType.Disconnect, ActionFlag.GlobalDetector | ActionFlag.WorksAfterDeath)]
     private void HandleManipulatedDeath(PlayerControl deadPlayer)
     {
         ClearManipulated(deadPlayer);

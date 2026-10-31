@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.Text;
 using Lotus.API;
 using Lotus.Utilities;
+using VentLib.Commands;
 using Lotus.Options;
 using VentLib.Options;
 using Lotus.Factions;
@@ -126,7 +127,7 @@ public class Guesser : Subrole, IInfoResender
 
     public void ResendMessages()
     {
-        GuesserMessage(Translations.HintMessage.Formatted(guessesThisMeeting)).Send(MyPlayer);
+        GuesserMessage(Translations.GuessHint.Formatted(guessesThisMeeting)).Send(MyPlayer);
     }
 
     [RoleAction(LotusActionType.RoundEnd)]
@@ -147,15 +148,17 @@ public class Guesser : Subrole, IInfoResender
     public void SelectPlayerToGuess(Optional<PlayerControl> player, MeetingDelegate _, ActionHandle handle)
     {
         if (skippedVote || guessesThisMeeting <= 0 || meetingEnded) return;
-        handle.Cancel();
         VoteResult result = voteSelector.CastVote(player);
+        // Skipping, or voting the selected player again without picking a role, counts as a normal vote. Every other vote is part of a guess.
+        bool normalVote = result.VoteResultType is VoteResultType.Skipped || result.VoteResultType is VoteResultType.Confirmed && guessedRole == null;
+        if (!normalVote) handle.Cancel();
         switch (result.VoteResultType)
         {
             case VoteResultType.None:
                 break;
             case VoteResultType.Skipped:
                 skippedVote = true;
-                GuesserMessage(Translations.SkippedGuessing).Send(MyPlayer);
+                GuesserMessage(Translations.SkipVoteCounts).Send(MyPlayer);
                 break;
             case VoteResultType.Selected:
                 PlayerControl? targetPlayer = Players.FindPlayerById(result.Selected);
@@ -164,7 +167,7 @@ public class Guesser : Subrole, IInfoResender
                 if (reason is CancelGuessReason.None)
                 {
                     guessingPlayer = result.Selected;
-                    GuesserMessage(Translations.PickedPlayerText.Formatted(targetPlayer.name)).Send(MyPlayer);
+                    GuesserMessage(Translations.PickedPlayerHint.Formatted(targetPlayer.name)).Send(MyPlayer);
                 }
                 else
                     GuesserMessage(reason switch
@@ -178,9 +181,11 @@ public class Guesser : Subrole, IInfoResender
             case VoteResultType.Confirmed:
                 if (guessedRole == null)
                 {
+                    skippedVote = true;
+                    guessingPlayer = byte.MaxValue;
                     voteSelector.Reset();
-                    SelectPlayerToGuess(player, _, handle);
-                    return;
+                    GuesserMessage(Translations.VotedNormally.Formatted(player.Map(p => p.name).OrElse("?"))).Send(MyPlayer);
+                    break;
                 }
 
                 PlayerControl? guessed = Players.FindPlayerById(guessingPlayer);
@@ -211,8 +216,8 @@ public class Guesser : Subrole, IInfoResender
         if (!isAlive) return;
         if (state is not GameState.InMeeting) return;
         if (guessingPlayer == byte.MaxValue) return;
-        if (!message.StartsWith("/cmd")) return;
-        string roleName = message.Substring("/cmd".Length).Trim().ToLower();
+        string? roleName = CommandAlias.Argument(message, CommandRunner.Prefix)?.ToLower();
+        if (roleName == null) return;
         if (string.IsNullOrEmpty(roleName))
         {
             ChatHandlers.InvalidCmdUsage().Send(MyPlayer);
@@ -239,7 +244,7 @@ public class Guesser : Subrole, IInfoResender
             guessedRole = role.Get();
             GuesserMessage(Translations.PickedRoleText.Formatted(Players.FindPlayerById(guessingPlayer)?.name, guessedRole.RoleName)).Send(MyPlayer);
         }
-        else GuesserMessage(Translations.UnknownRole.Formatted(roleName)).Send(MyPlayer);
+        else GuesserMessage(Translations.UnknownRoleHint.Formatted(roleName)).Send(MyPlayer);
 
         debounce = false;
     }
@@ -253,13 +258,14 @@ public class Guesser : Subrole, IInfoResender
     private void ResetGuessableRoles()
     {
         lastFaction = Faction;
-        guessableRoles = [];
-
-        guessableRoles = NormalStandardRoles.Instance.AllRoles
+        List<CustomRole> enabledRoles = NormalStandardRoles.Instance.AllRoles
             .Where(r => HostTurnedRoleOn(r)
                         || r.GetRoleType() is RoleType.DontShow && r.LinkedRoles().Any(HostTurnedRoleOn)
                         || r.RoleFlags.HasFlag(RoleFlag.VariationRole) && r.LinkedRoles().Any(HostTurnedRoleOn)
                         || r.RoleFlags.HasFlag(RoleFlag.TransformationRole) && r.LinkedRoles().Any(HostTurnedRoleOn))
+            .ToList();
+
+        guessableRoles = enabledRoles
             .Where(r =>
             {
                 int setting = -1;
@@ -268,6 +274,9 @@ public class Guesser : Subrole, IInfoResender
                 return setting == -1 || setting == 2 ? CanGuessDictionary.GetValueOrDefault(r.GetType(), -1) == 1 : setting == 1;
             })
             .ToList();
+
+        // Every Guesser team setting defaults to Off, so a fresh config would otherwise leave nothing to guess.
+        if (guessableRoles.Count == 0) guessableRoles = enabledRoles;
 
         bool HostTurnedRoleOn(CustomRole r) => (r.Count > 0 || r.RoleFlags.HasFlag(RoleFlag.RemoveRoleMaximum)) &&
                                                (r.Chance > 0 || r.RoleFlags.HasFlag(RoleFlag.RemoveRolePercent));
@@ -407,19 +416,20 @@ public class Guesser : Subrole, IInfoResender
     {
         [Localized(nameof(GuesserTitle))] public static string GuesserTitle = "Guesser";
 
-        [Localized(nameof(HintMessage))] public static string HintMessage = "You have {0} guess(es) left. Vote the player you want to try to guess.";
+        [Localized(nameof(GuessHint))] public static string GuessHint = "You have {0} guess(es) left. To guess, vote a player, type /[rolename], then vote them again.\nVote Skip, or vote the same player twice without picking a role, to vote normally.";
         [Localized(nameof(NoGuessesLeft))] public static string NoGuessesLeft = "You have ran out of guesses. Your next vote now acts as normal.";
-        [Localized(nameof(SkippedGuessing))] public static string SkippedGuessing = "You have exited guessing mode. Your next vote now acts as normal.";
+        [Localized(nameof(SkipVoteCounts))] public static string SkipVoteCounts = "You left guessing mode. Your skip vote counts.";
+        [Localized(nameof(VotedNormally))] public static string VotedNormally = "You didn't pick a role, so your vote for {0} counts as a normal vote.";
 
         [Localized(nameof(GuessDeathAnnouncement))] public static string GuessDeathAnnouncement = "A guesser has made a guess.\n{0} has died.";
 
         [Localized(nameof(CantGuessBecauseOfRole))] public static string CantGuessBecauseOfRole = "Your role prevented you from guessing {0}! Try a different player.";
         [Localized(nameof(CantGuessKnownRole))] public static string CantGuessKnownRole = "You can see {0}'s role! You can't guess that player.";
         [Localized(nameof(CantGuessTeammate))] public static string CantGuessTeammate = "{0} is your teammate! You can't guess that player.";
-        [Localized(nameof(UnknownRole))] public static string UnknownRole = "Unknown role {0}. You can type '/cmd available' to view all roles your are able to guess.";
+        [Localized(nameof(UnknownRoleHint))] public static string UnknownRoleHint = "Unknown role {0}. Type /available to see the roles you can guess.";
 
         [Localized(nameof(PickedRoleText))] public static string PickedRoleText = "You are attempting to guess {0} as {1}. To confirm this guess, vote that player again.\nOtherwise, vote another player to reset the process.";
-        [Localized(nameof(PickedPlayerText))] public static string PickedPlayerText = "You have selected to guess {0}. To select a role, type `/cmd [rolename]`. This command will be hidden from other players.";
+        [Localized(nameof(PickedPlayerHint))] public static string PickedPlayerHint = "You selected {0} to guess. Type /[rolename] to pick their role, or vote {0} again to vote for them normally.";
 
         [Localized(ModConstants.Options)]
         public static class Options

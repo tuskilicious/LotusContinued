@@ -8,7 +8,7 @@ public class TActionTrigger: CommonActionUnit
 
     public override string Execute(string meta, object? data)
     {
-        PluginDataManager.TemplateManager.ShowAll(TemplateUnit.FormatStatic(Input.ToString() ?? ""), null!, data);
+        PluginDataManager.TemplateManager.ShowAll(TemplateUnit.FormatStatic(Input.ToString() ?? "", data), null!, data);
         return meta;
     }
 }

@@ -1,3 +1,4 @@
+using Lotus.Utilities;
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -79,16 +80,12 @@ public class Pelican : NeutralKillingBase, IRoleUI
         _gulpedPlayerStat.Update(MyPlayer.UniquePlayerId(), i => i + 1);
         TeleportPlayer(target);
 
-        if (MyPlayer.AmOwner)
+        ScannerFeedback.Set(MyPlayer, MyPlayer, true);
+        var match = Game.MatchData;
+        Async.Schedule(() =>
         {
-            MyPlayer.SetScanner(true, ++MyPlayer.scannerCount);
-            Async.Schedule(() => MyPlayer.SetScanner(false, ++MyPlayer.scannerCount), 0.8f);
-        }
-        else
-        {
-            RpcV3.Immediate(MyPlayer.NetId, RpcCalls.SetScanner, SendOption.None).Write(true).Write(++MyPlayer.scannerCount).Send(MyPlayer.GetClientId());
-            Async.Schedule(() => RpcV3.Immediate(MyPlayer.NetId, RpcCalls.SetScanner, SendOption.None).Write(false).Write(++MyPlayer.scannerCount).Send(MyPlayer.GetClientId()), 0.8f);
-        }
+            if (ReferenceEquals(match, Game.MatchData)) ScannerFeedback.Set(MyPlayer, MyPlayer, false);
+        }, 0.8f);
 
         CheckPelicanEarlyWin();
 

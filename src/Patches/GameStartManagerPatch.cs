@@ -37,6 +37,9 @@ public static class GameStartManagerPatch
         public static TMPro.TextMeshPro HideName;
         public static void Postfix(GameStartManager __instance)
         {
+            Lotus.Utilities.ModerationNotice.Reset();
+            Lotus.Utilities.MobileOnboarding.Reset();
+            Lotus.Utilities.LobbyPreflight.Reset();
             __instance.GameRoomNameCode.text = GameCode.IntToGameName(AmongUsClient.Instance.GameId);
 
             HideName = Object.Instantiate(__instance.GameRoomNameCode, __instance.GameRoomNameCode.transform);
@@ -87,6 +90,7 @@ public class GameStartRandomMap
         {
             return false;
         }
+        if (!Lotus.Utilities.LobbyPreflight.CheckBeforeStart()) return false;
         if (GeneralOptions.AdminOptions.HostGM) LogManager.SendInGame("[Info] GM is Enabled");
 
         PetWarning.CheckForPets();
@@ -121,7 +125,8 @@ class ResetStartStatePatch
 {
     public static void Prefix()
     {
-        if (GameStartManager.InstanceExists && GameStartManager.Instance.startState == GameStartManager.StartingStates.Countdown)
+        // Only the host may sync settings; a client sending it is kicked for hacking.
+        if (AmongUsClient.Instance.AmHost && GameStartManager.InstanceExists && GameStartManager.Instance.startState == GameStartManager.StartingStates.Countdown)
         {
             PlayerControl.LocalPlayer.RpcSyncSettings(GameOptionsManager.Instance.gameOptionsFactory.ToBytes(GameOptionsManager.Instance.CurrentGameOptions, false));
         }

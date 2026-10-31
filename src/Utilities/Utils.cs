@@ -29,7 +29,7 @@ using Lotus.API.Player;
 
 namespace Lotus.Utilities;
 
-public static class Utils
+public static partial class Utils
 {
     private static readonly StandardLogger log = LoggerFactory.GetLogger<StandardLogger>(typeof(Utils));
 
@@ -85,13 +85,17 @@ public static class Utils
         return player.NameModel().GetComponentHolder<SubroleHolder>().Render(player, GameState.Roaming);
     }
 
-    public static PlayerControl? GetPlayerById(byte playerId) => PlayerControl.AllPlayerControls.ToArray().FirstOrDefault(pc => pc.PlayerId == playerId);
-
-    public static Optional<PlayerControl> PlayerById(byte playerId) => PlayerControl.AllPlayerControls.ToArray().FirstOrOptional(pc => pc.PlayerId == playerId);
+    public static Optional<PlayerControl> PlayerById(byte playerId) => Optional<PlayerControl>.Of(GetPlayerById(playerId));
 
     public static Optional<PlayerControl> PlayerByClientId(int clientId)
     {
-        return PlayerControl.AllPlayerControls.ToArray().FirstOrOptional(c => c.GetClientId() == clientId);
+        var players = PlayerControl.AllPlayerControls;
+        for (int i = 0; i < players.Count; i++)
+        {
+            PlayerControl player = players[i];
+            if (player != null && player.GetClientId() == clientId) return Optional<PlayerControl>.NonNull(player);
+        }
+        return Optional<PlayerControl>.Null();
     }
 
     public static string PadRightV2(this object text, int num)

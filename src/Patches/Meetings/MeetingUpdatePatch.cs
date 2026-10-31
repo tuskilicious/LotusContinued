@@ -18,7 +18,7 @@ class MeetingUpdatePatch
         if (Input.GetMouseButtonUp(1) && Input.GetKey(KeyCode.LeftControl))
             __instance.playerStates.DoIf(x => x.HighlightedFX.enabled, x =>
             {
-                PlayerControl? player = Utils.GetPlayerById(x.TargetPlayerId);
+                PlayerControl? player = Utils.GetPlayerById(x.PlayerId.Value);
                 ProtectedRpc.CheckMurder(PlayerControl.LocalPlayer, player);
 
                 log.High($"Execute: {player.GetNameWithRole()}", "Execution");
@@ -26,7 +26,7 @@ class MeetingUpdatePatch
 
         // ForceSkipAll has been inlined im pretty sure.
         var state = __instance.state;
-        if (state != MeetingHud.VoteStates.NotVoted && state != MeetingHud.VoteStates.Voted) return;
+        if (state != MeetingHud.MeetingStates.NotVoted && state != MeetingHud.MeetingStates.Voted) return;
         int votingTime = ProjectLotus.NormalOptions.GetInt(Int32OptionNames.VotingTime);
         if (votingTime < 0) return;
         int discussionTime = ProjectLotus.NormalOptions.GetInt(Int32OptionNames.DiscussionTime);

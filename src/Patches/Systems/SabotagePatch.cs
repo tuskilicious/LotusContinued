@@ -67,6 +67,7 @@ public static class SabotagePatch
                     SystemTypes.Comms => SabotageType.Communications,
                     SystemTypes.LifeSupp => SabotageType.Oxygen,
                     SystemTypes.Reactor => AUSettings.MapId() == 4 ? SabotageType.Helicopter : SabotageType.Reactor,
+                    SystemTypes.HeliSabotage => SabotageType.Helicopter,
                     SystemTypes.Laboratory => SabotageType.Reactor,
                     _ => throw new Exception($"Invalid Sabotage Type:{(SystemTypes)amount} {amount}")
                 };
@@ -147,7 +148,8 @@ public static class SabotagePatch
                 CurrentSabotage = null;
                 log.Info($"Oxygen Sabotage Fixed by {player.name}", "SabotageFix");
                 break;
-            case SystemTypes.Reactor when CurrentSabotage?.SabotageType() is SabotageType.Helicopter:
+            case SystemTypes.HeliSabotage:
+                if (CurrentSabotage?.SabotageType() != SabotageType.Helicopter) break;
                 if (!__instance.TryGetSystem(systemType, out systemInstance)) break;
                 HeliSabotageSystem heliSabotage = systemInstance!.Cast<HeliSabotageSystem>();
                 int heliNum = amount & 3;
@@ -197,7 +199,7 @@ public static class SabotagePatch
 [HarmonyPatch(typeof(ShipStatus), nameof(ShipStatus.UpdateSystem), typeof(SystemTypes), typeof(PlayerControl), typeof(MessageReader))]
 class WriterSabotagePatch
 {
-    internal static SystemTypes[] WatchedSystems = { SystemTypes.Reactor, SystemTypes.Doors, SystemTypes.Sabotage, SystemTypes.Electrical, SystemTypes.LifeSupp, SystemTypes.Laboratory, SystemTypes.Comms };
+    internal static SystemTypes[] WatchedSystems = { SystemTypes.Reactor, SystemTypes.HeliSabotage, SystemTypes.Doors, SystemTypes.Sabotage, SystemTypes.Electrical, SystemTypes.LifeSupp, SystemTypes.Laboratory, SystemTypes.Comms };
     internal static bool Prefix(ShipStatus __instance,
         [HarmonyArgument(0)] SystemTypes systemType,
         [HarmonyArgument(1)] PlayerControl player,
